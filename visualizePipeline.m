@@ -1,97 +1,62 @@
 % visualizePipeline.m
 % Purpose: Visualize each stage of the preprocessing pipeline for a single image.
-% Inputs:  imgPath - Path to an image file (or pass image array directly)
-%          classLabel - Optional string for title
-% Outputs: Displays a 2x3 tiled figure showing the pipeline stages.
+% Usage:
+%   visualizePipeline                -> opens file picker dialog
+%   visualizePipeline(imgPath)       -> processes given image
+%   visualizePipeline(imgPath, lbl)  -> processes with custom label
 
 function visualizePipeline(imgPath, classLabel)
-    % Handle input: file path or image array
+    if nargin < 1
+        [file, path] = uigetfile({'*.jpg;*.jpeg;*.png;*.bmp;*.tif;*.tiff', 'Image Files (*.jpg, *.png, *.bmp, *.tif)'}, 'Select an Image');
+        if isequal(file, 0)
+            fprintf('Cancelled.\n');
+            return;
+        end
+        imgPath = fullfile(path, file);
+    end
+
     if ischar(imgPath) || isstring(imgPath)
         if ~exist(imgPath, 'file')
             error('Image file not found: %s', imgPath);
         end
         img = imread(imgPath);
+        displayName = char(imgPath);
         if nargin < 2
-            % Try to extract class name from parent folder
-            classLabel = fileparts(fileparts(imgPath));
-            classLabel = classLabel(end);
+            parts = strsplit(fileparts(imgPath), filesep);
+            classLabel = parts{end};
         end
     else
         img = imgPath;
+        displayName = 'in-memory image';
         if nargin < 2
             classLabel = 'Sample';
         end
     end
-    
-    % Run preprocessing pipeline
-    fprintf('Processing image for visualization...\n');
-    result = preprocessImage(img);
-    
-    % Create figure with 2x3 layout
-    figure('Name', 'Preprocessing Pipeline Visualization', 'Position', [100, 100, 1400, 900]);
-    tiledlayout(2, 3, 'TileSpacing', 'compact', 'Padding', 'compact');
-    
-    % Title for the whole figure
-    titleStr = sprintf('Preprocessing Pipeline: %s', classLabel);
-    title(titleStr, 'FontSize', 18, 'FontWeight', 'bold');
-    
-    % --- Tile 1: Original ---
-    nexttile;
-    imshow(result.original);
-    title('1. Original Image', 'FontSize', 12, 'FontWeight', 'bold');
-    axis off;
-    
-    % --- Tile 2: Resized ---
-    nexttile;
-    imshow(result.resized);
-    title('2. Resized (256x256)', 'FontSize', 12, 'FontWeight', 'bold');
-    axis off;
-    
-    % --- Tile 3: Noise Filtered ---
-    nexttile;
-    imshow(result.filtered);
-    title('3. Gaussian Filtered (\sigma=1.5)', 'FontSize', 12, 'FontWeight', 'bold');
-    axis off;
-    
-    % --- Tile 4: Contrast Enhanced ---
-    nexttile;
-    imshow(result.enhanced);
-    title('4. Contrast Enhanced (imadjust on V)', 'FontSize', 12, 'FontWeight', 'bold');
-    axis off;
-    
-    % --- Tile 5: Segmentation Mask ---
-    nexttile;
-    imshow(result.cleanMask);
-    title('5. Cleaned Segmentation Mask', 'FontSize', 12, 'FontWeight', 'bold');
-    axis off;
-    colormap(gca, 'gray');
-    
-    % --- Tile 6: Final Masked Output ---
-    nexttile;
-    imshow(result.maskedOutput);
-    title('6. Final Output (Background Removed)', 'FontSize', 12, 'FontWeight', 'bold');
-    axis off;
-    
-    % Add a colorbar for the mask if desired
-    % (Not needed for binary mask)
-    
-    fprintf('Visualization complete. Close figure to continue.\n');
-end
 
-% --- Demo mode: run on a sample image if called as script ---
-if ~isfunction('visualizePipeline')
-    % Find first image in dataset
-    datasetRoot = 'union_dataset';
-    subfolders = dir(datasetRoot);
-    classFolders = subfolders([subfolders.isdir]);
-    classFolders = classFolders(~ismember({classFolders.name}, {'.', '..'}));
-    
-    if length(classFolders) > 0
-        firstClass = classFolders(1).name;
-        imgFiles = dir(fullfile(datasetRoot, firstClass, '*.jpg'));
-        if length(imgFiles) > 0
-            samplePath = fullfile(datasetRoot, firstClass, imgFiles(1).name);
-            visualizePipeline(samplePath, firstClass);
-        end
-    end
+    fprintf('Processing: %s\n', displayName);
+    result = preprocessImage(img);
+
+    figure('Name', 'Preprocessing Pipeline', 'Position', [100, 100, 1400, 900]);
+    tiledlayout(2, 3, 'TileSpacing', 'compact', 'Padding', 'compact');
+    title(sprintf('Pipeline: %s', classLabel), 'FontSize', 16, 'FontWeight', 'bold');
+
+    nexttile; imshow(result.original);
+    title('1. Original'); axis off;
+
+    nexttile; imshow(result.resized);
+    title('2. Resized (256x256)'); axis off;
+
+    nexttile; imshow(result.filtered);
+    title('3. Gaussian Filtered'); axis off;
+
+    nexttile; imshow(result.enhanced);
+    title('4. Contrast Enhanced'); axis off;
+
+    nexttile; imshow(result.cleanMask);
+    title('5. Segmentation Mask'); axis off; colormap(gca, 'gray');
+
+    nexttile; imshow(result.maskedOutput);
+    title('6. Final Output'); axis off;
+
+    fprintf('Done.\n');
 end

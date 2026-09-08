@@ -1,138 +1,101 @@
 % preprocessDataset.m
-% Purpose: Batch-process all images in the dataset through the preprocessing pipeline.
-% Inputs:  datasetRoot  - Path to input dataset (default: 'union_dataset')
-%          outputRoot   - Path to save preprocessed images (default: 'preprocessed')
-%          targetSize   - Resize dimensions [H W] (default: [256 256])
-% Outputs: Saves preprocessed images to outputRoot/<class_name>/ preserving labels.
-%          Prints progress every 20 images. Skips bad images with try/catch.
+% Purpose: Batch-process all images through the preprocessing pipeline.
+% Usage:
+%   preprocessDataset                         -> opens folder pickers
+%   preprocessDataset(inputDir)               -> uses given input, picks output
+%   preprocessDataset(inputDir, outputDir, targetSize) -> uses supplied settings
 
 function preprocessDataset(datasetRoot, outputRoot, targetSize)
-    % --- Defaults ---
-    if nargin < 1 || isempty(datasetRoot)
-        datasetRoot = 'union_dataset';
+    if nargin < 1
+        datasetRoot = uigetdir('.', 'Select Dataset Folder');
+        if isequal(datasetRoot, 0)
+            fprintf('Cancelled.\n');
+            return;
+        end
     end
-    if nargin < 2 || isempty(outputRoot)
-        outputRoot = 'preprocessed';
+    if nargin < 2
+        outputRoot = uigetdir('.', 'Select Output Folder');
+        if isequal(outputRoot, 0)
+            fprintf('Cancelled.\n');
+            return;
+        end
     end
     if nargin < 3 || isempty(targetSize)
         targetSize = [256, 256];
     end
-    
-    fprintf('=== Batch Preprocessing Started ===\n');
-    fprintf('Input dataset:  %s\n', datasetRoot);
-    fprintf('Output folder:  %s\n', outputRoot);
-    fprintf('Target size:    %dx%d\n\n', targetSize(1), targetSize(2));
-    
-    % Verify input exists
+
     if ~exist(datasetRoot, 'dir')
         error('Dataset folder not found: %s', datasetRoot);
     end
-    
-    % Create output root if needed
     if ~exist(outputRoot, 'dir')
         mkdir(outputRoot);
-        fprintf('Created output folder: %s\n', outputRoot);
     end
-    
-    % Use imageDatastore for efficient loading with labels
+
+    fprintf('=== Batch Preprocessing ===\n');
+    fprintf('Input:  %s\n', datasetRoot);
+    fprintf('Output: %s\n\n', outputRoot);
+
     imds = imageDatastore(datasetRoot, ...
         'IncludeSubfolders', true, ...
         'LabelSource', 'foldernames', ...
-        'FileExtensions', {'.jpg', '.jpeg', '.png', '.bmp', '.tif', '.tiff'});
-    
-    % Print class distribution
-    fprintf('Class distribution:\n');
-    labelCounts = countEachLabel(imds);
-    disp(labelCounts);
-    fprintf('\n');
-    
-    totalImages = imds.Count;
-    fprintf('Total images to process: %d\n\n', totalImages);
-    
-    % Get all file paths and labels upfront for progress tracking
+        'FileExtensions', {'.jpg','.jpeg','.png','.bmp','.tif','.tiff'});
+
+    fprintf('Classes:\n');
+    uniqueClasses0 = unique(imds.Labels);
+    for c = 1:length(uniqueClasses0)
+        cnt = sum(imds.Labels == uniqueClasses0(c));
+        fprintf('  %-35s : %d images\n', char(uniqueClasses0(c)), cnt);
+    end
+
+    totalImages = numel(imds.Files);
+    fprintf('Total images: %d\n\n', totalImages);
+
     allFiles = imds.Files;
     allLabels = imds.Labels;
     uniqueClasses = unique(allLabels);
-    
-    % Create output subfolders for each class
+
     for c = 1:length(uniqueClasses)
-        className = uniqueClasses{c};
+        className = char(uniqueClasses(c));
         classOutDir = fullfile(outputRoot, className);
         if ~exist(classOutDir, 'dir')
             mkdir(classOutDir);
         end
     end
-    
-    % --- Processing loop ---
+
     processedCount = 0;
-    skippedCount = 0;
     errorCount = 0;
-    
+
     for i = 1:totalImages
         imgPath = allFiles{i};
-        classLabel = allLabels(i);
-        
-        % Progress print every 20 images
-        if mod(i, 20) == 1 || i == totalImages
-            fprintf('[%d/%d] Processing: %s (%s)\n', i, totalImages, classLabel, imgPath);
-        end
-        
-        % --- Try/Catch block: one bad image won't crash the batch ---
-        try
-            % Read image
-            img = imread(imgPath);
-            
-            % Ensure RGB
-            if size(img, 3) == 1
-                img = cat(3, img, img, img);  % Grayscale to RGB
-            elseif size(img, 3) == 4
-                img = img(:,:,1:3);  % Drop alpha channel
-            end
-            
-            % Run preprocessing pipeline
-            result = preprocessImage(img, targetSize);
-            
-            % Construct output filename (preserve original name)
-            [~, baseName, ext] = fileparts(imgPath);
-            outFileName = [baseName, '_preprocessed', '.png'];  % Save as PNG (lossless)
-            outPath = fullfile(outputRoot, classLabel, outFileName);
-            
-            % Save preprocessed image
-            imwrite(result.maskedOutput, outPath);
-            
-            processedCount = processedCount + 1;
-            
-        catch ME
-            % Log error but continue with next image
-            fprintf('  !! ERROR processing %s: %s\n', imgPath, ME.message);
-            errorCount = errorCount + 1;
-            
-            % Optional: save error log
-            % errorLog = [errorLog; {imgPath, ME.message}];
-        end
-    end
-    
-    % --- Summary ---
-    fprintf('\n=== Batch Preprocessing Complete ===\n');
-    fprintf('Successfully processed: %d\n', processedCount);
-    fprintf('Skipped (errors):       %d\n', errorCount);
-    fprintf('Output location:        %s\n', outputRoot);
-    
-    % Verify output
-    if exist(outputRoot, 'dir')
-        outFolders = dir(outputRoot);
-        outFolders = outFolders([outFolders.isdir]);
-        outFolders = outFolders(~ismember({outFolders.name}, {'.', '..'}));
-        fprintf('Output classes created: %d\n', length(outFolders));
-        for k = 1:length(outFolders)
-            classPath = fullfile(outputRoot, outFolders(k).name);
-            outFiles = dir(fullfile(classPath, '*.png'));
-            fprintf('  %s: %d images\n', outFolders(k).name, length(outFiles));
-        end
-    end
-end
+        classLabel = char(allLabels(i));
 
-% --- Allow running as script with defaults ---
-if ~isfunction('preprocessDataset')
-    preprocessDataset('union_dataset', 'preprocessed', [256, 256]);
+        if mod(i, 20) == 1 || i == totalImages
+            fprintf('[%d/%d] %s\n', i, totalImages, imgPath);
+        end
+
+        try
+            img = imread(imgPath);
+            if size(img, 3) == 1
+                img = cat(3, img, img, img);
+            elseif size(img, 3) == 4
+                img = img(:,:,1:3);
+            end
+
+            result = preprocessImage(img, targetSize);
+            [~, baseName] = fileparts(imgPath);
+            outPath = fullfile(outputRoot, classLabel, [baseName '_preprocessed.png']);
+            imwrite(result.maskedOutput, outPath);
+            imwrite(uint8(result.cleanMask) * 255, ...
+                fullfile(outputRoot, classLabel, [baseName '_mask.png']));
+            processedCount = processedCount + 1;
+
+        catch ME
+            fprintf('  ERROR: %s - %s\n', imgPath, ME.message);
+            errorCount = errorCount + 1;
+        end
+    end
+
+    fprintf('\n=== Complete ===\n');
+    fprintf('Processed: %d | Errors: %d\n', processedCount, errorCount);
+    fprintf('Output: %s\n', outputRoot);
 end
