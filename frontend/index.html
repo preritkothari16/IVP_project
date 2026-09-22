@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IVP Plant Disease Classifier</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="topbar">
+  <div class="logo">🌱 IVP Classifier</div>
+  <div class="nav-links">
+    <a href="#" data-page="explorer" class="active">Dataset</a>
+    <a href="#" data-page="pipeline">Pipeline</a>
+    <a href="#" data-page="classify">Classify</a>
+    <a href="#" data-page="results">Results</a>
+  </div>
+</nav>
+
+<main>
+  <!-- DATASET EXPLORER -->
+  <section id="page-explorer" class="page active">
+    <div class="page-header">
+      <h1>Dataset Explorer</h1>
+      <div class="path-input">
+        <label>Preprocessed folder:</label>
+        <input type="text" id="explorer-path" value="D:\ivp\preprocessed" />
+        <button onclick="loadDataset()" class="btn btn-primary">Load</button>
+      </div>
+    </div>
+    <div id="dataset-stats" class="stats-row hidden"></div>
+    <div id="dataset-classes" class="class-grid"></div>
+    <div id="sample-modal" class="modal hidden">
+      <div class="modal-content">
+        <span class="modal-close" onclick="closeModal()">&times;</span>
+        <h2 id="modal-title"></h2>
+        <div id="modal-images" class="sample-images"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PREPROCESSING PIPELINE -->
+  <section id="page-pipeline" class="page">
+    <div class="page-header">
+      <h1>Preprocessing Pipeline</h1>
+      <p>Upload a leaf image to see each processing stage</p>
+    </div>
+    <div class="upload-area" id="pipeline-upload" ondrop="handlePipelineDrop(event)" ondragover="event.preventDefault()" ondragenter="this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')">
+      <input type="file" id="pipeline-file" accept="image/*" onchange="handlePipelineFile(this)" hidden />
+      <div class="upload-content" onclick="document.getElementById('pipeline-file').click()">
+        <div class="upload-icon">📷</div>
+        <p>Drop image here or click to browse</p>
+      </div>
+    </div>
+    <div id="pipeline-stages" class="pipeline-grid hidden">
+      <div class="stage-card">
+        <div class="stage-label">1. Original</div>
+        <img id="stage-0" />
+      </div>
+      <div class="stage-card">
+        <div class="stage-label">2. Resized</div>
+        <img id="stage-1" />
+      </div>
+      <div class="stage-card">
+        <div class="stage-label">3. Gaussian Filtered</div>
+        <img id="stage-2" />
+      </div>
+      <div class="stage-card">
+        <div class="stage-label">4. Contrast Enhanced</div>
+        <img id="stage-3" />
+      </div>
+      <div class="stage-card">
+        <div class="stage-label">5. Segmentation Mask</div>
+        <img id="stage-4" />
+      </div>
+      <div class="stage-card">
+        <div class="stage-label">6. Final Output</div>
+        <img id="stage-5" />
+      </div>
+    </div>
+    <div id="pipeline-loading" class="loading hidden">
+      <div class="spinner"></div>
+      <p>Processing image...</p>
+    </div>
+  </section>
+
+  <!-- CLASSIFIER -->
+  <section id="page-classify" class="page">
+    <div class="page-header">
+      <h1>Classify Leaf</h1>
+      <p>Upload a leaf image to predict the disease</p>
+    </div>
+    <div class="classify-config">
+      <label>k value:</label>
+      <input type="number" id="k-value" value="3" min="1" max="15" />
+    </div>
+    <div class="upload-area" id="classify-upload" ondrop="handleClassifyDrop(event)" ondragover="event.preventDefault()" ondragenter="this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')">
+      <input type="file" id="classify-file" accept="image/*" onchange="handleClassifyFile(this)" hidden />
+      <div class="upload-content" onclick="document.getElementById('classify-file').click()">
+        <div class="upload-icon">🍃</div>
+        <p>Drop leaf image here or click to browse</p>
+      </div>
+    </div>
+    <div id="classify-result" class="result-card hidden"></div>
+    <div id="classify-loading" class="loading hidden">
+      <div class="spinner"></div>
+      <p>Classifying...</p>
+    </div>
+  </section>
+
+  <!-- RESULTS DASHBOARD -->
+  <section id="page-results" class="page">
+    <div class="page-header">
+      <h1>Results Dashboard</h1>
+      <div class="path-input">
+        <label>Preprocessed folder:</label>
+        <input type="text" id="results-path" value="D:\ivp\preprocessed" />
+        <label>k:</label>
+        <input type="number" id="results-k" value="3" min="1" max="15" style="width:60px" />
+        <button onclick="runEvaluation()" class="btn btn-primary">Run Evaluation</button>
+      </div>
+    </div>
+    <div id="results-content" class="hidden">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-accuracy"></div>
+          <div class="stat-label">Accuracy</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-train"></div>
+          <div class="stat-label">Train Samples</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-test"></div>
+          <div class="stat-label">Test Samples</div>
+        </div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-card wide">
+          <h3>Confusion Matrix</h3>
+          <div id="confusion-matrix"></div>
+        </div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-card full">
+          <h3>Per-Class F1 Score</h3>
+          <canvas id="f1-chart" height="300"></canvas>
+        </div>
+      </div>
+      <div class="chart-card full">
+        <h3>Per-Class Metrics</h3>
+        <div id="metrics-table"></div>
+      </div>
+    </div>
+    <div id="results-loading" class="loading hidden">
+      <div class="spinner"></div>
+      <p>Evaluating classifier...</p>
+    </div>
+  </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

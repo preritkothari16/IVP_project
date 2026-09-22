@@ -17,3 +17,9 @@ knn_model.mat
 Thumbs.db
 *.swp
 *~
+# Python
+__pycache__/
+*.pyc
+
+# App cache
+backend/cache/
