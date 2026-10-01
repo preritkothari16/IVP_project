@@ -1,0 +1,27 @@
+# Source datasets - regenerable, multi-GB, never commit
+dataset/
+binary_dataset/
+
+# Derived healthy-filter images (28 MB); the scores CSV is kept as evidence
+healthy_clean/*
+!healthy_clean/*.csv
+
+# Local clone of ultralytics/yolov5. README section 1 documents cloning it and
+# lists the two patched files. ~80 MB, and it is a third-party repo.
+yolov5/
+
+# Frontend deps and build output
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Runtime artifacts
+*.log
+pids.txt
+__pycache__/
+*.pyc
+
+# Re-include the small CSV evidence the README cites (the repo-root .gitignore
+# excludes *.csv globally, which would drop eval/ep28/predictions.csv etc).
+# Safe because the excluded directories above are pruned before negation applies.
+!*.csv

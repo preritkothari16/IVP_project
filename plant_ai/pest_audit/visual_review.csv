@@ -1,0 +1,11 @@
+folder,folder_size,strawberry_found,pct_strawberry,review_method,dominant_non_strawberry_hosts,meets_40,meets_80
+aphid,46,0,0.0%,16-thumb sample,"cotton, cucumber, beet, mango",no,no
+aphid_effects,66,0,0.0%,16-thumb sample,"rose, nectarine, currant, grape",no,no
+spider_mite,141,25,17.7%,ALL 141 reviewed,"ficus, magnolia, camellia, oak, cannabis, oleander, rose",no,no
+whitefly,51,0,0.0%,16-thumb sample,"avocado, chilli, tomato, poinsettia, rambutan",no,no
+mealybug,75,0,0.0%,16-thumb sample,"cycad, hibiscus, ixora, oleander, mango, gardenia, squash",no,no
+thrips,62,10,16.1%,ALL 62 reviewed,"mango, citrus, avocado, olive, rubber, leek, brassica",no,no
+leaf_miners,76,0,0.0%,16-thumb sample,"chrysanthemum, tomato, spinach, coleus, hibiscus",no,no
+caterpillars,43,0,0.0%,16-thumb sample,"tomato, hibiscus, lantana, brassica, mulberry",no,no
+scale,98,0,0.0%,16-thumb sample,"croton, orchid, mango, palm, euonymus",no,no
+slugs,20,2,10.0%,ALL 20 reviewed,"brassica, bare soil",no,no

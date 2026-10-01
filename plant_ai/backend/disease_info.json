@@ -1,0 +1,300 @@
+{
+  "_comment": "Disease information for the 9 strawberry classes. All entries are marked \"verified\": false and need review by a qualified agronomist/plant pathologist before public release. Treatment guidance is deliberately general - no product names or dosages. Where the dataset label does not map cleanly onto a single disease, the entry says so in 'uncertainty'.",
+  "healthy": {
+    "display_name": "Healthy strawberry",
+    "summary": "No disease symptoms detected. The leaf or fruit shows normal colour, texture and growth for strawberry.",
+    "cause": "None - the plant shows no visible disease symptoms.",
+    "symptoms": [
+      "Uniform green or normal-variegated foliage",
+      "No necrotic spots, lesions or powdery/mouldy growth",
+      "Fruit firm, evenly coloured and free of sunken lesions"
+    ],
+    "treatment": [
+      "No treatment required",
+      "Continue normal cultural care: consistent watering, mulch, and feeding"
+    ],
+    "prevention": [
+      "Water at the base of the plant to keep foliage dry",
+      "Provide good air circulation and full sun",
+      "Remove and destroy any diseased tissue promptly to protect the rest of the planting",
+      "Rotate the planting site every 2-3 years to avoid soil-borne build-up"
+    ],
+    "severity": "none",
+    "spread": "Not applicable - healthy tissue does not transmit disease.",
+    "uncertainty": "Healthy material from this dataset comes from two different sources with very different backgrounds (field/greenhouse rows vs. PlantVillage studio images on plain backgrounds). A 'healthy' prediction therefore mostly reflects plant species and background, not subtle health differences.",
+    "verified": false
+  },
+  "angular_leafspot": {
+    "display_name": "Angular leaf spot (strawberry bacterial leaf spot)",
+    "summary": "Bacterial leaf disease producing small, water-soaked, angular spots bounded by leaf veins that later turn brown/purplish and may merge.",
+    "cause": "Bacterium, primarily Xanthomonas fragariae (angular leaf spot), and in some regions Pseudomonas syringae pv. syringae. It is not a fungal disease.",
+    "symptoms": [
+      "Small translucent water-soaked spots, typically 1-2 mm, on the upper leaf surface",
+      "Spots are angular because they are limited by the leaf veins",
+      "Spots darken to brown/reddish-purple and may have a translucent 'bacterial streaming' halo when held to light",
+      "Spots may merge into large irregular blighted areas",
+      "Severe infection causes leaf margins to brown and leaves to die"
+    ],
+    "treatment": [
+      "Remove and destroy infected leaves; do not compost them in the planting",
+      "Avoid overhead irrigation and work in the planting when leaves are wet, to limit bacterial spread",
+      "Copper-based bactericides (fixed copper formulations labelled for strawberries) can suppress new infections; they do not cure existing lesions",
+      "Do not apply antibiotics - resistance is widespread and many jurisdictions prohibit them"
+    ],
+    "prevention": [
+      "Use certified disease-free planting material and resistant cultivars where available",
+      "Rotate out of strawberry for 2-3 years to reduce bacterial survival in crop residue",
+      "Apply a non-contact protectant (e.g. fixed copper) early in the season and after heavy rain if the disease has occurred previously",
+      "Keep foliage dry: drip irrigation and wider spacing reduce leaf wetness",
+      "Remove crop residue at the end of the season"
+    ],
+    "severity": "medium",
+    "spread": "Splash-dispersed bacteria in rain and irrigation water; enters leaves through wounds and natural openings; spread between wet plants by handling and machinery.",
+    "uncertainty": "The dataset label 'angular_leafspot' is the name used by the Kaggle 'Strawberry Disease Detection' dataset. That dataset is known to be visually similar to several other foliar diseases and to healthy leaves with minor blemishes, so a substantial fraction of these images may not be true Xanthomonas angular leaf spot. Confirm against lab or extension-service diagnosis before treating.",
+    "verified": false
+  },
+  "leaf_spot": {
+    "display_name": "Leaf spot (common strawberry leaf spot / purple blotch)",
+    "summary": "A group of fungal leaf diseases producing round purple-to-brown spots, sometimes with pale centres, that may merge and kill the leaf.",
+    "cause": "Fungi. Common causes on strawberry are Mycosphaerella fragariae (common leaf spot, now Ramularia grevilleana in some taxonomies) and Diplocarpon earlianum (purple blotch / leaf scorch). This label likely pools more than one species.",
+    "symptoms": [
+      "Rounded spots 3-6 mm across, initially dark purple with lighter centres",
+      "Spots may develop a 'bird's-eye' appearance with pale centres and darker borders",
+      "Spots can merge, causing large dead areas and leaf scorch",
+      "Purple blotch can also cause lesions on petioles, runners and fruit"
+    ],
+    "treatment": [
+      "Remove infected leaves and any infected runners to reduce inoculum",
+      "Apply a labelled protectant fungicide (e.g. captan, myclobutanil, or a copper-based product) at first sign of disease and repeat as the label directs",
+      "Mulch with clean straw to keep fruit and leaves away from soil splash",
+      "After harvest, mow and remove old foliage to break the disease cycle"
+    ],
+    "prevention": [
+      "Choose resistant cultivars and certified clean plants",
+      "Remove old leaves and crop debris after harvest",
+      "Widen plant spacing and keep rows weed-free to speed drying",
+      "Avoid overhead irrigation; irrigate by drip or furrow",
+      "Do not plant in shaded, poorly drained sites"
+    ],
+    "severity": "medium",
+    "spread": "Airborne and splash-dispersed fungal spores from infected leaves and old debris; spores survive on plant residue and are spread by rain, wind and machinery.",
+    "uncertainty": "'leaf_spot' is a catch-all label. Common leaf spot, purple blotch and leaf scorch can look very similar, and this dataset also contains images of ordinary senescence, insect damage and mechanical injury under the same label. The exact causal species per image is unknown.",
+    "verified": false
+  },
+  "leaf_scorch": {
+    "display_name": "Leaf scorch",
+    "summary": "Leaf browning that starts at the margins and moves inward, usually caused by water stress, heat, wind or salt rather than by an infectious agent.",
+    "cause": "Usually abiotic: water deficit, heat and wind burn, salt or fertiliser burn, root restriction or winter desiccation. Note that some fungal diseases (purple blotch) also produce scorched-looking leaves, so the two can be confused.",
+    "symptoms": [
+      "Browning that begins at the leaf margin and progresses inward",
+      "Browned tissue stays crisp rather than becoming slimy",
+      "Leaf edges may curl or become brittle",
+      "No distinct circular spots or fungal growth on the leaf surface",
+      "Symptoms usually appear first on the oldest leaves or on the exposed edge of the canopy"
+    ],
+    "treatment": [
+      "Water deeply and consistently at the base of the plant",
+      "Apply a 5-8 cm (2-3 in) mulch layer of clean straw to keep roots cool and moist and to reduce salt crusting",
+      "During hot, dry, windy weather provide temporary shade or wind protection for young plantings",
+      "If fertiliser burn is suspected, leach the root zone with clean water and stop feeding until new growth is normal",
+      "Remove dead leaves; they will not recover, but healthy new growth should emerge"
+    ],
+    "prevention": [
+      "Install drip irrigation so moisture is consistent and foliage stays dry",
+      "Avoid shallow, frequent watering that encourages surface roots",
+      "Test soil and irrigation water for excessive salts; flush if needed",
+      "Do not over-apply fertiliser, especially high-nitrogen or high-salt products",
+      "Mulch to buffer soil temperature swings"
+    ],
+    "severity": "low",
+    "spread": "Not infectious - caused by environment. Abiotic leaf scorch cannot be transmitted from plant to plant.",
+    "uncertainty": "This label is dominated by PlantVillage studio images of 'Strawberry Leaf scorch' on plain backgrounds. In that dataset the category is a mix of genuine abiotic scorch and photos showing ordinary old/damaged leaves. It is also visually close to the fungal 'leaf_spot' and 'leaf_scorch' images from the field source, so confusion between these three labels in a trained model is expected.",
+    "verified": false
+  },
+  "powdery_mildew_leaf": {
+    "display_name": "Powdery Mildew - detected on leaf",
+    "summary": "Fungal disease producing white, talcum-like powder on the upper leaf surface; leaves curl upward and may turn purple or red in severe infections.",
+    "cause": "Fungus Podosphaera aphanis (syn. Sphaerotheca macularis f. sp. fragariae).",
+    "symptoms": [
+      "White powdery fungal growth on the upper (and later lower) leaf surface",
+      "Growth typically starts on older leaves and spreads to young ones",
+      "Leaf margins curl upward and the leaf may become leathery",
+      "In severe cases leaves turn red/purple and the plant looks stunted",
+      "Fruit near infected foliage may be dull and seedy"
+    ],
+    "treatment": [
+      "Remove and destroy heavily infected leaves",
+      "Apply a labelled fungicide such as sulfur, potassium bicarbonate, myclobutanil or a horticultural oil; sulfur and oils are best used before/early in the season because they can scorch foliage in heat",
+      "Improve air movement by thinning dense, overhanging growth",
+      "Avoid excessive nitrogen, which produces the soft, lush growth powdery mildew prefers"
+    ],
+    "prevention": [
+      "Plant resistant cultivars - this is the single most effective measure",
+      "Give plants full sun and space them for good air circulation",
+      "Remove old leaves after harvest so the fungus has less overwintering tissue",
+      "Avoid overhead irrigation; powdery mildew does not need free water on the leaf and actually germinates well in dry, humid air",
+      "Keep weeds down around the planting"
+    ],
+    "severity": "low",
+    "spread": "Airborne fungal conidia carried on wind; overwinters as spores (chasmothecia) and as mycelium on living leaves and crowns. Thrives in high humidity with moderate temperatures but does not require leaf wetness.",
+    "uncertainty": "Fairly reliable label, but note that powdery mildew on older strawberry leaves is frequently photographed alongside marginal browning that looks like scorch; a minority of images in this class appear to show scorch or bacterial leaf spot rather than classic powdery growth.",
+    "verified": false,
+    "disease_group": "powdery_mildew",
+    "organ": "leaf",
+    "group_display_name": "Powdery Mildew",
+    "group_note": "Powdery mildew is one disease caused by a single fungus (Podosphaera aphanis). It appears on leaves, on unripe fruit, or both, and the treatment is the same either way - only where you see it differs. A photo of a leaf and a photo of a fruit are labelled separately in training because the model learns what it is looking at, not because they are different diseases."
+  },
+  "powdery_mildew_fruit": {
+    "display_name": "Powdery Mildew - detected on fruit",
+    "summary": "Same pathogen as leaf powdery mildew, but the visible sign is a dry, white powdery coating on the unripe fruit surface, especially near the calyx.",
+    "cause": "Fungus Podosphaera aphanis - the same organism that causes leaf powdery mildew; the two classes are the same disease on different plant parts.",
+    "symptoms": [
+      "Dry, whitish powdery growth on green/unripe fruit, often heaviest around the calyx and shoulders",
+      "Seeds and the immediate skin may turn a dull, dry grey-white",
+      "Ripe fruit may look pale and be harder to market but is generally still edible if otherwise sound",
+      "On very light infection the powder may rub off and the fruit is unaffected internally"
+    ],
+    "treatment": [
+      "Pick and destroy visibly infected unripe fruit during the run of the planting",
+      "Apply the same labelled fungicides used for leaf powdery mildew (sulfur, potassium bicarbonate, myclobutanil, horticultural oil), timed to fruit development",
+      "Remove the most heavily affected old leaves to cut spore production",
+      "Harvest promptly and keep harvested fruit out of warm, humid storage"
+    ],
+    "prevention": [
+      "Same prevention as leaf powdery mildew: resistant cultivars, full sun, spacing for airflow",
+      "Remove foliage and debris after harvest so the fungus has no overwintering tissue",
+      "Avoid heavy late-season nitrogen that pushes soft growth and dense canopies",
+      "Manage water so that irrigation does not wet the fruit and foliage late in the day"
+    ],
+    "severity": "low",
+    "spread": "Airborne spores on wind, same as the leaf form. Infected young fruit are the main source of spores that then infect leaves and other fruit.",
+    "uncertainty": "This class is separated from leaf powdery mildew only by which plant part is photographed. The pathogen is identical, so a model cannot reliably tell them apart from appearance alone, and the two classes will confuse each other. Treat a prediction in either class as 'powdery mildew present on the plant'.",
+    "verified": false,
+    "disease_group": "powdery_mildew",
+    "organ": "fruit",
+    "group_display_name": "Powdery Mildew",
+    "group_note": "Powdery mildew is one disease caused by a single fungus (Podosphaera aphanis). It appears on leaves, on unripe fruit, or both, and the treatment is the same either way - only where you see it differs. A photo of a leaf and a photo of a fruit are labelled separately in training because the model learns what it is looking at, not because they are different diseases."
+  },
+  "blossom_blight": {
+    "display_name": "Blossom blight (brown rot / blossom blight of strawberry flowers)",
+    "summary": "Disease that kills strawberry flowers and young green fruit, beginning as a brown, water-soaked lesion on the petals or calyx that expands under humid conditions.",
+    "cause": "Most commonly the fungus Botrytis cinerea (grey mould) in cool wet spring weather; Sclerotinia and Monilinia species can cause similar blossom blight in some regions.",
+    "symptoms": [
+      "Petal bases turn brown and water-soaked, often while the rest of the flower still looks normal",
+      "The flower wilts, browns and dies without setting fruit",
+      "A soft brown rot can extend into the receptacle and the young green fruit",
+      "Grey fuzzy growth may appear on dead blossoms in humid weather",
+      "Heavily affected plantings produce many blank, unripe berries"
+    ],
+    "treatment": [
+      "Pick off and remove dead and infected blossoms where practical",
+      "Apply a labelled protectant fungicide (e.g. captan, myclobutanil, or a copper product) from bud break through early flowering, especially in damp springs",
+      "Remove plant debris and old leaves to reduce overwintering inoculum",
+      "Improve drainage and air movement so flowers dry quickly after dew and rain"
+    ],
+    "prevention": [
+      "Choose well-spaced, weed-free plantings so flowers dry quickly after wet weather",
+      "Avoid overhead irrigation; use drip so petals stay dry",
+      "Remove old foliage after harvest and destroy crop residue",
+      "Use resistant cultivars and avoid excessive nitrogen that produces lush, soft flowers",
+      "In frost-prone areas, frost damage to blossoms can be confused with blight - note the date of any late frost"
+    ],
+    "severity": "high",
+    "spread": "Airborne and splash-dispersed fungal spores from infected blossoms, dead petals and old debris; favoured by cool, wet, humid conditions during flowering and can spread from botrytis-infected fruit.",
+    "uncertainty": "'blossom_blight' is a field-photo class from a mixed source dataset. Many of these images show wilted or frost- or herbicide-damaged blossoms rather than a confirmed pathogen, and some overlap heavily with the grey_mold class. This label should be treated as low confidence until lab-confirmed.",
+    "verified": false
+  },
+  "anthracnose_fruit_rot": {
+    "display_name": "Anthracnose fruit rot",
+    "summary": "Fungal fruit rot producing firm, sunken, circular dark lesions on ripe strawberry fruit, often with conspicuous pink or orange spore masses in the sunken centres.",
+    "cause": "Fungi in the genus Colletotrichum, principally C. acutatum (and C. fragariae in some regions). Anthracnose is distinct from the soft, grey-fuzzy rot of Botrytis.",
+    "symptoms": [
+      "Circular, firm, sunken dark brown to black lesions on ripe fruit",
+      "Lesions are firmer and drier than grey mould rot",
+      "Pink to salmon or orange spore masses develop in the centre of sunken lesions in damp weather",
+      "Small reddish-brown sunken spots may be visible on green fruit earlier in the season",
+      "Secondary organisms can turn the rot soft and mushy late in the disease"
+    ],
+    "treatment": [
+      "Pick and destroy infected fruit; do not leave mummified fruit in the planting",
+      "Apply a labelled protectant fungicide (e.g. captan, myclobutanil, or a copper product) from bloom through harvest, rotating FRAC groups to slow resistance",
+      "Remove infected leaves and old fruit at the end of the season",
+      "Avoid splashing soil onto fruit; keep rows mulched"
+    ],
+    "prevention": [
+      "Start with certified disease-free transplants",
+      "Remove and destroy crop debris and mummified fruit after harvest, since the fungus survives there",
+      "Mulch to prevent soil splash and keep fruit off the damp soil surface",
+      "Use drip irrigation and avoid overhead watering",
+      "Rotate away from strawberry and other hosts for 2-3 years; rotate labelled fungicide FRAC groups as a resistance-management measure"
+    ],
+    "severity": "high",
+    "spread": "Fungal spores splashed by rain and irrigation from infected fruit, leaves and crop residue; the fungus overwinters in mummified fruit and plant debris in the soil.",
+    "uncertainty": "This label comes from one Kaggle source that mixes strawberry fruit rot with related anthracnose diseases of other hosts. Confirm on a strawberry host before acting; the distinguishing feature versus grey mould is firm sunken lesions with pink spore masses rather than soft grey fuzz.",
+    "verified": false
+  },
+  "gray_mold": {
+    "display_name": "Grey mould (Botrytis fruit rot / grey mold)",
+    "summary": "The most important postharvest and pre-harvest rot of strawberry: soft brown rot of ripe fruit covered in characteristic fluffy grey mould, often starting on damaged or botrytis-blighted blossoms.",
+    "cause": "Fungus Botrytis cinerea. This is the same organism that causes blossom blight, so those two labels are the same disease at different stages.",
+    "symptoms": [
+      "Soft, watery, light-brown rot that becomes dark as it advances",
+      "Fluffy grey to brown mould covering the fruit, most obvious in humid conditions",
+      "Often begins on one side of the fruit or where it touches soil or a ripe neighbour",
+      "Infected fruit shrivel into firm black mummies that still produce spores",
+      "Petal infections ('blossom blight') frequently lead to infected fruit"
+    ],
+    "treatment": [
+      "Remove infected and mummified fruit from the planting frequently; this is the most effective action",
+      "Apply a labelled fungicide (e.g. captan, myclobutanil, fenhexamid, or a copper product) timed to bloom and early fruit development, rotating FRAC groups",
+      "Harvest ripe fruit promptly and refrigerate quickly; do not leave harvested fruit warm and wet",
+      "Keep fruit off the soil and avoid wounds during picking"
+    ],
+    "prevention": [
+      "Improve air circulation and reduce humidity: wider rows, weed control, drip rather than overhead irrigation",
+      "Harvest every 1-2 days during warm weather and remove damaged fruit",
+      "Mulch to keep fruit clean and dry off the soil",
+      "Remove crop debris, dead leaves and mummified fruit at the end of the season - Botrytis survives there as tiny resting bodies",
+      "Avoid excessive nitrogen, which produces soft dense canopies that stay wet"
+    ],
+    "severity": "high",
+    "spread": "Airborne conidia spread by wind, rain splash and handling; the fungus overwinters as sclerotia and mycelium in mummified fruit, dead petals and plant debris. Fruit is most susceptible between flowering and harvest.",
+    "uncertainty": "IMPORTANT: only the original 'gray_mold' folder is used for this class. Two sibling folders in the source dataset, 'grey_mold' and 'botrytis_cinerea', were visually inspected and found to contain non-strawberry plants (cannabis, grape, cucumber) and orchid flowers respectively, so they were deliberately excluded even though the pathogen name matches. This class should still be reviewed: some 'gray_mold' images may show other rots (anthracnose, leather rot) or non-strawberry hosts.",
+    "verified": false
+  },
+  "_ui_groups": {
+    "powdery_mildew": {
+      "display_name": "Powdery Mildew",
+      "note": "Powdery mildew is one disease caused by a single fungus (Podosphaera aphanis). It appears on leaves, on unripe fruit, or both, and the treatment is the same either way - only where you see it differs. A photo of a leaf and a photo of a fruit are labelled separately in training because the model learns what it is looking at, not because they are different diseases.",
+      "summary": "Fungal disease producing white, talcum-like powder on the upper leaf surface; leaves curl upward and may turn purple or red in severe infections.",
+      "cause": "Fungus Podosphaera aphanis (syn. Sphaerotheca macularis f. sp. fragariae).",
+      "symptoms": [
+        "White powdery fungal growth on the upper (and later lower) leaf surface",
+        "Growth typically starts on older leaves and spreads to young ones",
+        "Leaf margins curl upward and the leaf may become leathery",
+        "In severe cases leaves turn red/purple and the plant looks stunted",
+        "Fruit near infected foliage may be dull and seedy"
+      ],
+      "treatment": [
+        "Remove and destroy heavily infected leaves",
+        "Apply a labelled fungicide such as sulfur, potassium bicarbonate, myclobutanil or a horticultural oil; sulfur and oils are best used before/early in the season because they can scorch foliage in heat",
+        "Improve air movement by thinning dense, overhanging growth",
+        "Avoid excessive nitrogen, which produces the soft, lush growth powdery mildew prefers"
+      ],
+      "prevention": [
+        "Plant resistant cultivars - this is the single most effective measure",
+        "Give plants full sun and space them for good air circulation",
+        "Remove old leaves after harvest so the fungus has less overwintering tissue",
+        "Avoid overhead irrigation; powdery mildew does not need free water on the leaf and actually germinates well in dry, humid air",
+        "Keep weeds down around the planting"
+      ],
+      "severity": "low",
+      "spread": "Airborne fungal conidia carried on wind; overwinters as spores (chasmothecia) and as mycelium on living leaves and crowns. Thrives in high humidity with moderate temperatures but does not require leaf wetness.",
+      "members": {
+        "powdery_mildew_leaf": "leaf",
+        "powdery_mildew_fruit": "fruit"
+      },
+      "verified": false
+    }
+  }
+}

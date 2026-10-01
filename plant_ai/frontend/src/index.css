@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-moss-50 text-soil antialiased;
+    background-image:
+      radial-gradient(circle at 15% 12%, rgba(156, 199, 154, 0.25), transparent 45%),
+      radial-gradient(circle at 85% 8%, rgba(221, 176, 139, 0.22), transparent 40%);
+    background-attachment: fixed;
+  }
+  :focus-visible {
+    @apply outline-none ring-2 ring-moss-500 ring-offset-2 ring-offset-moss-50 rounded-lg;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white/90 backdrop-blur-sm rounded-2xl border border-moss-200/70 shadow-sm;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm
+           font-semibold transition-colors duration-150 disabled:opacity-50
+           disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-moss-700 text-white hover:bg-moss-800 active:bg-moss-900;
+  }
+  .btn-ghost {
+    @apply btn bg-white text-moss-800 border border-moss-300 hover:bg-moss-100;
+  }
+  .tab {
+    @apply px-3.5 py-2 text-sm font-medium rounded-t-lg border-b-2 -mb-px transition-colors
+           border-transparent text-moss-600 hover:text-moss-800 hover:border-moss-300;
+  }
+  .tab-active {
+    @apply text-moss-900 border-moss-600;
+  }
+  .prose-list {
+    @apply space-y-1.5 text-sm leading-relaxed text-moss-900;
+  }
+  .prose-list > li {
+    @apply relative pl-4;
+  }
+  .prose-list > li::before {
+    content: '';
+    @apply absolute left-0 top-[0.55em] h-1.5 w-1.5 rounded-full bg-moss-400;
+  }
+}
+
+/* shimmering placeholder while predicting */
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: shimmer 1.4s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

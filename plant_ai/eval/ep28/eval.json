@@ -1,0 +1,100 @@
+{
+  "weights": "D:\\ivp\\plant_ai\\yolov5\\runs\\train-cls\\strawberry9\\weights\\best.pt",
+  "tag": "ep28",
+  "n_test": 344,
+  "overall_top1": 0.9825581395348837,
+  "macro_top1": 0.9638396375098502,
+  "per_class": [
+    {
+      "class": "angular_leafspot",
+      "support": 30,
+      "accuracy": 0.9666666666666667
+    },
+    {
+      "class": "anthracnose_fruit_rot",
+      "support": 8,
+      "accuracy": 1.0
+    },
+    {
+      "class": "blossom_blight",
+      "support": 11,
+      "accuracy": 1.0
+    },
+    {
+      "class": "gray_mold",
+      "support": 40,
+      "accuracy": 1.0
+    },
+    {
+      "class": "healthy",
+      "support": 88,
+      "accuracy": 1.0
+    },
+    {
+      "class": "leaf_scorch",
+      "support": 60,
+      "accuracy": 1.0
+    },
+    {
+      "class": "leaf_spot",
+      "support": 48,
+      "accuracy": 0.9791666666666666
+    },
+    {
+      "class": "powdery_mildew_fruit",
+      "support": 12,
+      "accuracy": 0.75
+    },
+    {
+      "class": "powdery_mildew_leaf",
+      "support": 47,
+      "accuracy": 0.9787234042553191
+    }
+  ],
+  "confused_pairs_top10": [
+    {
+      "true": "powdery_mildew_fruit",
+      "pred": "gray_mold",
+      "count": 3,
+      "share_of_true": 0.25
+    },
+    {
+      "true": "angular_leafspot",
+      "pred": "healthy",
+      "count": 1,
+      "share_of_true": 0.03333333333333333
+    },
+    {
+      "true": "leaf_spot",
+      "pred": "blossom_blight",
+      "count": 1,
+      "share_of_true": 0.020833333333333332
+    },
+    {
+      "true": "powdery_mildew_leaf",
+      "pred": "powdery_mildew_fruit",
+      "count": 1,
+      "share_of_true": 0.02127659574468085
+    }
+  ],
+  "by_source": {
+    "plantvillage": {
+      "n": 110,
+      "accuracy": 1.0
+    },
+    "other": {
+      "n": 234,
+      "accuracy": 0.9743589743589743
+    }
+  },
+  "pv_other_gap": 0.02564102564102566,
+  "classes_with_both_sources": [
+    {
+      "class": "healthy",
+      "pv_n": 50,
+      "pv_acc": 1.0,
+      "other_n": 38,
+      "other_acc": 1.0
+    }
+  ]
+}
