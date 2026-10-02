@@ -1,0 +1,54 @@
+# Quarantined training images — powdery_mildew_fruit label decontamination
+#
+# Removed from dataset/train/powdery_mildew_fruit/ on 2 October 2026 after a visual audit of all
+# 81 real training images plus an objective lesion-texture measurement. These 13 images are grey
+# mould (Botrytis cinerea) appearances filed under powdery mildew (Podosphaera aphanis).
+#
+# WHY: powdery mildew presents as fine, even, MATTE WHITE powder - smooth inside the lesion with
+# high luminance. Botrytis presents as textured grey-brown mycelium. Measured against the
+# gray_mold training distribution, these 13 fell inside its interquartile range for lesion
+# roughness (4.0-9.3) AND luminance (0.565-0.692) with a brown-grey lesion share > 0.5, i.e. they
+# are statistically and visually indistinguishable from grey mould. Visual review agreed
+# independently: powdery_mildew_fruit_120.jpg is a dried brown shrivelled mummy (that one was
+# identified by eye, and was outside the automated 13), and _15.jpg / _44.jpg show grey-brown fuzz.
+#
+# The model had been trained to associate grey-brown fruit with powdery mildew, which is why it
+# called gray_mold at 0.92 on genuine mildew berries. Removing them raised that class from 50% to
+# 58.3% accuracy and cut confident wrong answers from 11 to 9.
+#
+# DISPOSITION: quarantined rather than deleted, so the decision is reversible. These were NOT
+# relabelled into gray_mold, because borderline cases that cannot be confidently identified
+# should not be asserted into the class being protected.
+#
+# The originals remain in D:\ivp\union_dataset\powdery_mildew_fruit\ - this dataset is derived,
+# so the source images were never at risk.
+#
+# 13 contaminated source images:
+powdery_mildew_fruit_108.jpg
+powdery_mildew_fruit_2.jpg
+powdery_mildew_fruit_23.jpg
+powdery_mildew_fruit_36.jpg
+powdery_mildew_fruit_4.jpg
+powdery_mildew_fruit_52.jpg
+powdery_mildew_fruit_57.jpg
+powdery_mildew_fruit_67.jpg
+powdery_mildew_fruit_68.jpg
+powdery_mildew_fruit_69.jpg
+powdery_mildew_fruit_74.jpg
+powdery_mildew_fruit_80.jpg
+powdery_mildew_fruit_92.jpg
+
+# 4 hard-mined augmented variants derived from powdery_mildew_fruit_69.jpg, removed with their
+# source so no variant of a contaminated image survives:
+powdery_mildew_fruit_69_hard0.jpg
+powdery_mildew_fruit_69_hard1.jpg
+powdery_mildew_fruit_69_hard2.jpg
+powdery_mildew_fruit_69_hard3.jpg
+
+# Identified visually but NOT among the automated 13 (fell outside the gray_mold IQR), recorded
+# here because it is the clearest single example of the contamination:
+#   powdery_mildew_fruit_120.jpg - dried, brown, shrivelled mummy; textbook Botrytis fruit rot.
+
+# NOT quarantined: anthracnose_fruit_rot. All 58 of its training images were individually checked
+# and every one shows textbook sunken lesions with salmon/orange spore pustules. That class is
+# data-starved, not mislabelled.

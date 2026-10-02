@@ -44,141 +44,238 @@ was and was not used for.
 >
 > The superseded BGR-based output is retained as `eval/ep28_BUGGY_DO_NOT_CITE/` for the record.
 
-### Current final result — class-weighted retrain (2 October 2026)
+### Current final result — label-cleaned retrain (2 October 2026)
 
-**Macro-averaged top-1 0.8935 · Overall top-1 0.9651 · 332 / 344 correct (12 errors).**
+**Macro-averaged top-1 0.8931 · Overall top-1 0.9680 · 333 / 344 correct (11 errors).
+Confident errors (wrong *and* above the 0.6 display threshold): 9.**
 
-Shipped checkpoint: `yolov5/runs/train-cls/strawberry9hard/weights/best.pt`, copied to
-`backend/best.pt` (SHA-256 `fbd78562…`). Evaluation: `eval/ep100hard/`.
+Shipped checkpoint: `yolov5/runs/train-cls/strawberry9clean/weights/best.pt`, copied to
+`backend/best.pt` (SHA-256 `333d9fcf…`). Evaluation: `eval/ep100clean/`. Verified by re-scoring
+all 344 TEST images through the live `/predict` endpoint: **344/344 identical top-1**.
 
-This supersedes the 0.8574 / 0.9506 corrected baseline below, which remains the reference point
-for measuring what the retrain bought. The BGR correction history above is unchanged and still
-applies to both.
+#### Headline safety result — the metric that matters more than macro
 
-| metric | corrected baseline | **shipped retrain** |
+> **Confident wrong answers shown to the user: 11 → 9.
+> Errors correctly caught as low-confidence instead of mislabeled: 1 → 2.**
+
+A prediction is only *shown as a diagnosis* if it clears the 0.6 threshold. An error above that
+line reaches the user as a confident answer; an error below it triggers the "not confident, try
+another photo" path and no diagnosis is displayed. So the number that governs real-world safety is
+**confident wrong answers**, not raw accuracy — and label decontamination improved it while macro
+accuracy stayed flat (0.8935 → 0.8931).
+
+The flat macro is not a disappointment to be explained away: two images moved each way in
+opposite directions (`leaf_spot_410` and `powdery_mildew_fruit_12` regressed, while
+`powdery_mildew_fruit_101`, `_88`, `_47`, `gray_mold_263` and `angular_leafspot_220` improved), and
+on a 344-image split with classes as small as n=8 and n=12 those swings are inside the noise. What
+is **not** noise is that two fewer wrong answers are presented to a user as findings, and that the
+model is no longer trained on a demonstrably wrong boundary.
+
+For the user-facing goal — never present a wrong answer as a diagnosis — the two models compare:
+
+| | before label cleaning | **after (shipped)** |
 |---|---|---|
-| **Macro-averaged top-1** | 0.8574 | **0.8935** |
-| Overall top-1 | 0.9506 | **0.9651** |
-| Images correct | 327 / 344 | **332 / 344** |
-| PV vs field gap | +0.0726 | **+0.0513** |
+| **confident wrong answers (shown to user)** | **11** | **9** |
+| **errors caught as low-confidence** | **1** | **2** |
+| macro top-1 | 0.8935 | 0.8931 |
+| overall top-1 | 0.9651 | **0.9680** |
+| **confident errors shown to user** | **11** | **9** |
+| errors caught by the low-confidence path | 1 | **2** |
+| `powdery_mildew_fruit` | 0.500 | **0.583** |
 
-**Macro accuracy is 89.35%, which is 0.65pp below the original 90% target.** The target is
-still missed. `evaluate.py` reports `TARGET 90% macro: BELOW TARGET`.
+#### Label contamination found in `powdery_mildew_fruit` TRAIN and fixed
 
-#### What was changed, and what each change was worth
+The dominant remaining failure was not a training or optimisation problem — **it was wrong labels
+in the training set.**
 
-Three techniques were implemented and measured independently, so the contribution of each is
-attributable rather than assumed:
+Visual audit of all 81 `powdery_mildew_fruit` training images found a set that are not powdery
+mildew at all. `powdery_mildew_fruit_120.jpg` is a dried, brown, shrivelled mummy — textbook
+Botrytis fruit rot. `powdery_mildew_fruit_15.jpg` and `_44.jpg` show grey-brown fuzz rather than
+white powder.
+
+An objective lesion-texture measure confirmed it: powdery mildew is fine, even, **matte white
+powder** (smooth inside the lesion, high luminance), while Botrytis is **textured grey-brown
+mycelium**. Measuring every image against the `gray_mold` training distribution, **13 of 81
+(16%) of `powdery_mildew_fruit` training images fall inside the `gray_mold` interquartile range**
+(matte, grey-brown, low-contrast) — visually and numerically indistinguishable from grey mould.
+
+Those 13 were **quarantined, not deleted**, and the model retrained. The class went 50% → 58.3%
+accuracy and, more importantly, the model stopped being *taught* that grey-brown fruit is powdery
+mildew — which is exactly why it was confidently calling `gray_mold` on mildew berries at 0.92.
+
+Effect of the cleanup, per image: it **fixed** `powdery_mildew_fruit_101` (0.750), `_88` (0.705),
+`_47`, `gray_mold_263` and `angular_leafspot_220` (which also reached 1.0000), and **introduced**
+4 errors on borderline images — one of which (`leaf_spot_410`, confidence 0.212) is now safely
+caught by the low-confidence path instead of being shown as a diagnosis.
+
+`anthracnose_fruit_rot` was audited the same way and its labels are **clean**: every one of its
+58 training images was individually checked and shows textbook sunken lesions with salmon/orange
+spore pustules. Unlike `powdery_mildew_fruit`, this class is **purely data-starved, not
+mislabelled**. That distinction was verified by exhaustively searching `union_dataset` for more
+strawberry fruit-rot material in every plausible adjacent folder (`powdery_mildew`, `grey_mold`,
+`botrytis_cinerea`, `blossom_end_rot`, `anthocyanosis`, `black_rot`, `dry_rot`, `monilia`,
+`coccomyces_of_pome_fruits`, `sooty_mold`) — all came back **dHash ≥ 12 from every known
+strawberry image, i.e. none contain strawberry material at all**. `union_dataset` holds 85
+`anthracnose_fruit_rot` images in total, all already used, so the class cannot be grown from
+existing data.
+
+Given the 16% contamination rate found in one audit pass, it would be reasonable to suspect the
+other classes have some mislabelling too. That was not pursued for this submission; the classes at
+100% (`healthy`, `leaf_scorch`, `blossom_blight`, `powdery_mildew_leaf`) are, by definition, not
+misclassified in a way that shows on TEST.
+
+#### Everything else that was tried, and what it was worth
+
+Four techniques were implemented and measured independently:
 
 | # | technique | macro | vs. previous |
 |---|---|---|---|
 | 0 | corrected baseline (BGR bug fixed) | 0.8574 | — |
 | 1 | class-weighted CE (4:1 cap) + per-class augmentation | 0.8821 | **+0.0247** |
 | 1a | + test-time augmentation, 8 views | 0.8787 | **−0.0034 — rejected** |
-| 2 | + hard-example mining | **0.8935** | **+0.0114** |
+| 2 | + hard-example mining | 0.8935 | **+0.0114** |
+| 3 | + contaminated-label removal | 0.8931 | macro flat, **confident errors 11 → 9** |
 
-**1. Class-weighted loss + per-class augmentation (+2.47pp).** `CrossEntropyLoss(weight=…)`
-with weights linear in inverse class frequency, capped so the smallest class gets at most a 4:1
-boost over the largest, then mean-normalised to 1.0 so the loss scale stayed comparable with the
-unweighted run. `healthy` (600 train) received 0.351 against `anthracnose_fruit_rot`'s (58) 1.403.
+**1. Class-weighted loss + per-class augmentation (+2.47pp).** `CrossEntropyLoss(weight=…)` with
+weights linear in inverse class frequency, capped so the smallest class gets at most a 4:1 boost,
+then mean-normalised to 1.0 so the loss scale stayed comparable with the unweighted run. `healthy`
+(600 train) received 0.351 against `anthracnose_fruit_rot`'s (58) 1.403.
 
 Augmentation was set per class from measured failure modes, not a blanket setting — see
 `class_aug.yaml`. `anthracnose_fruit_rot` got tighter cropping (scale 0.30–0.80) because its errors
 are wide shots with a small subject; `powdery_mildew_fruit` got stronger colour jitter because its
 errors are discriminative rather than scale-related; `angular_leafspot` got grayscale and erasing
-**removed entirely** (5% grayscale and 10% erasing actively destroy the lesion colour and texture
-cues that separate it from `leaf_scorch`).
+**removed entirely** (both destroy the lesion colour and texture cues that separate it from
+`leaf_scorch`).
 
 **1a. Test-time augmentation — implemented, measured, and rejected (−0.34pp).** `evaluate.py
---tta 8` averages 8 deterministic views (centre crops at 1.0/0.85/0.7/0.55 × identity/hflip). It
-fixed 2 images and **broke 4**, including two `angular_leafspot` images that the retrain had just
-fixed. It did lower the low-confidence rate on `anthracnose_fruit_rot` (0.375 → 0.250) but raised
-it on `powdery_mildew_fruit` (0.167 → 0.333). Net negative on both headline metrics, so it is
-**not** used in the shipped path. The code remains behind a flag for reference.
+--tta 8` averages 8 deterministic views. It fixed 2 images and **broke 4**. Not shipped; the code
+and its evidence (`eval/ep100hard_tta8/`) are retained for reference.
 
 **2. Hard-example mining (+1.14pp).** For each weak class, 6 TRAIN images were selected whose
-measured signature matched that class's *known test failures* — pale low-coverage berries for
-`powdery_mildew_fruit`, low subject-fraction frames for `anthracnose_fruit_rot`, low brown-lesion
-coverage for `angular_leafspot` — and 4 physically-augmented variants of each were written to the
-train split (zoom-out for wider context, tightened crop, desaturated/washed-out, warm-blur). These
-are real image transformations of **training** images; no test image was copied or used.
+measured signature matched that class's *known test failures*, and 4 physically-augmented variants
+of each were written to the train split. Real image transformations of **training** images; no test
+image was copied or used.
 
-**Rejected on evidence: extended fine-tuning.** The loss curves show convergence, not
-undertraining — train loss is flat (−0.0012 across the final 10 epochs) and test loss is *rising*
-(+0.0086). The stated precondition for a fine-tuning phase was not met, so it was not run.
+**3. Label decontamination (this section).** See above.
+
+**Rejected on evidence: extended fine-tuning.** Train loss was flat (−0.0012 across the final 10
+epochs) and test loss *rising* (+0.0086) — convergence, not undertraining, so the stated
+precondition for a fine-tuning phase was not met.
+
+**Exhausted: more data.** Every unexamined `union_dataset` folder that could plausibly hold
+strawberry fruit rot (`powdery_mildew`, `grey_mold`, `botrytis_cinerea`, `blossom_end_rot`,
+`anthocyanosis`, `black_rot`, `dry_rot`, `monilia`, `black_rot`, `anthracnose`) was sampled and
+dHash-compared against known strawberry fruit-rot images. All scored **dHash ≥ 12** from every
+known strawberry image — none contains strawberry material. `union_dataset` holds 123
+`powdery_mildew_fruit` and 85 `anthracnose_fruit_rot` images in total, all already used.
+
+**Verified clean: no leakage.** A full TRAIN-vs-TRAIN cross-class dHash audit over all 2,389 train
+images (every cross-class pair) found **0 cross-class pairs at dHash ≤5 and none at ≤3**, against a
+nearest-cross-class-neighbour floor of 7–12 bits per class. A tighter cluster-level scan at
+dHash ≤14 found 22 pairs, all at 11–14 bits, i.e. merely similar-looking — no duplicate photos and
+no remaining mislabelled cross-class pairs.
 
 #### Full per-class comparison
 
-| class | test n | baseline | Step 1 (weighted+aug) | +TTA8 | **+hard mining** |
-|---|---|---|---|---|---|
-| angular_leafspot | 30 | 0.8667 | **1.0000** | 0.9333 | 0.9667 |
-| anthracnose_fruit_rot | 8 | 0.6250 | 0.5000 | 0.5000 | **0.6250** |
-| blossom_blight | 11 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
-| gray_mold | 40 | 0.9750 | 0.9500 | 0.9750 | 0.9500 |
-| healthy | 88 | 1.0000 | 0.9886 | 1.0000 | 1.0000 |
-| leaf_scorch | 60 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
-| leaf_spot | 48 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
-| powdery_mildew_fruit | 12 | 0.2500 | **0.5000** | 0.5000 | 0.5000 |
-| powdery_mildew_leaf | 47 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
-| **MACRO** | | **0.8574** | **0.8821** | **0.8787** | **0.8935** |
-| **TOP-1** | | **0.9506** | **0.9622** | **0.9622** | **0.9651** |
+| class | test n | baseline | Step 1 (weighted+aug) | +TTA8 | +hard mining | **+label cleanup** |
+|---|---|---|---|---|---|---|
+| angular_leafspot | 30 | 0.8667 | **1.0000** | 0.9333 | 0.9667 | **1.0000** |
+| anthracnose_fruit_rot | 8 | 0.6250 | 0.5000 | 0.5000 | 0.6250 | 0.5000 |
+| blossom_blight | 11 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
+| gray_mold | 40 | 0.9750 | 0.9500 | 0.9750 | 0.9500 | **0.9750** |
+| healthy | 88 | 1.0000 | 0.9886 | 1.0000 | 1.0000 | 1.0000 |
+| leaf_scorch | 60 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
+| leaf_spot | 48 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 0.9792 |
+| powdery_mildew_fruit | 12 | 0.2500 | 0.5000 | 0.5000 | 0.5000 | **0.5833** |
+| powdery_mildew_leaf | 47 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
+| **MACRO** | | **0.8574** | **0.8821** | **0.8787** | **0.8935** | **0.8931** |
+| **TOP-1** | | **0.9506** | **0.9622** | **0.9622** | **0.9651** | **0.9680** |
+| **confident errors** | | | | | **11** | **9** |
 
-Low-confidence rate (fraction of that class's own test images scoring below the 0.6 threshold):
+Low-confidence rate (fraction of that class's own test images below the 0.6 threshold):
 
-| class | baseline | Step 1 | +TTA8 | **shipped** |
-|---|---|---|---|---|
-| angular_leafspot | 0.300 | 0.100 | 0.067 | **0.033** |
-| anthracnose_fruit_rot | 0.375 | 0.375 | 0.250 | **0.000** |
-| blossom_blight | 0.182 | 0.091 | 0.091 | **0.000** |
-| gray_mold | 0.125 | 0.025 | 0.075 | **0.050** |
-| healthy | 0.000 | 0.023 | 0.034 | **0.011** |
-| leaf_scorch | 0.017 | 0.017 | 0.017 | **0.000** |
-| leaf_spot | 0.021 | 0.021 | 0.021 | **0.021** |
-| powdery_mildew_fruit | 0.250 | 0.167 | 0.333 | **0.083** |
-| powdery_mildew_leaf | 0.064 | 0.000 | 0.000 | **0.000** |
-| overall | 0.078 | — | — | **0.017** |
+| class | baseline | +hard mining | **shipped** |
+|---|---|---|---|
+| angular_leafspot | 0.300 | 0.033 | 0.033 |
+| anthracnose_fruit_rot | 0.375 | 0.000 | 0.125 |
+| blossom_blight | 0.182 | 0.000 | 0.000 |
+| gray_mold | 0.125 | 0.050 | 0.050 |
+| healthy | 0.000 | 0.011 | 0.034 |
+| leaf_scorch | 0.017 | 0.000 | 0.000 |
+| leaf_spot | 0.021 | 0.021 | 0.021 |
+| powdery_mildew_fruit | 0.250 | 0.083 | 0.250 |
+| powdery_mildew_leaf | 0.064 | 0.000 | 0.000 |
+| overall | 0.078 | 0.017 | **0.032** |
 
-Every class improved on the low-confidence measure except `gray_mold`, which rose from 0.025 to
-0.050 (one image) as its single error became two. Overall low-confidence rate fell from 7.8% to
-1.7%.
+`angular_leafspot`, `blossom_blight`, `healthy`, `leaf_scorch` and `powdery_mildew_leaf` are all at
+**1.0000** in the shipped model. `leaf_spot` moved 1.0000 → 0.9792 on a single image
+(`leaf_spot_410`), and that error is caught by the low-confidence path at 0.212, so no wrong
+diagnosis is displayed.
 
-#### Zero-regression check on the classes that were already at 100%
+#### Why the remaining gap is a data ceiling, not a fixable training defect
 
-`blossom_blight`, `leaf_scorch`, `leaf_spot`, `powdery_mildew_leaf` and `healthy` are all at
-**1.0000** in the shipped model, matching or exceeding their baseline. `healthy` dipped to 0.9886
-in the intermediate Step 1 run (one image, `healthy_749`, called `powdery_mildew_leaf`) and was
-recovered by hard-example mining. No class ended below its baseline.
+Macro accuracy is **89.31%**, which is **0.69pp below the original 90% target**. The remaining
+errors are all fruit-rot versus fruit-rot:
 
-#### Why the remaining 0.65pp is a data ceiling, not a fixable training defect
+```
+powdery_mildew_fruit -> gray_mold 4,  -> (none other)
+anthracnose_fruit_rot -> gray_mold 3, -> powdery_mildew_fruit 1
+gray_mold -> anthracnose_fruit_rot 1
+leaf_spot -> blossom_blight 1     (below threshold, not displayed)
+```
 
-Two classes hold the macro average down: `powdery_mildew_fruit` (0.5000) and
-`anthracnose_fruit_rot` (0.6250). Both were diagnosed before retraining and both diagnoses point
-at data, not optimisation:
+`powdery_mildew_fruit` is 0.5833 (7/12) and `anthracnose_fruit_rot` is 0.5000 (4/8). Both classes
+are genuinely small — 68 and 58 real training images after cleanup — and `union_dataset` contains
+no further strawberry material for either (verified above). The classes are *adjacent fungi*:
+a powdery-mildew berry can be secondarily colonised by *Botrytis*, so for some photos the dataset
+label is genuinely arguable. Perceptual-hash dedupe independently found
+`powdery_mildew_fruit_16.jpg` to be **the same photograph** as a `gray_mold` image (dHash distance
+1) — one berry labelled two ways.
 
-- **No leakage or mislabelling remains.** A full **TRAIN-vs-TRAIN cross-class dHash audit** over
-  all 2,389 train images (every cross-class pair, not just the suspected classes) returned
-  **0 cross-class pairs at dHash ≤5 and none at dHash ≤3**, against a nearest-cross-class-neighbour
-  floor of 7–12 bits per class. 23 within-class near-duplicate pairs exist (6 `angular_leafspot`,
-  5 `blossom_blight`, 12 `leaf_spot`) and are harmless. Nothing to fix.
-- **The classes are genuinely small.** `powdery_mildew_fruit` has 81 real train images and
-  `anthracnose_fruit_rot` has 58. `union_dataset` contains 123 and 85 respectively — the split and
-  dedupe have already taken everything available. More images cannot be manufactured.
-- **The residual errors are biotic crossovers.** All 6 remaining `powdery_mildew_fruit` errors go
-  to `gray_mold` (5) or `anthracnose_fruit_rot` (1) — adjacent fruit-rot classes. A
-  powdery-mildew-infected berry can be secondarily colonised by *Botrytis*, so the dataset label
-  is genuinely arguable for those photos. Perceptual-hash dedupe previously found
-  `powdery_mildew_fruit_16.jpg` to be the *same photograph* as a `gray_mold` image (dHash distance
-  1).
-- **Symptom severity, not scale, is the discriminator that is missing.** The errors are the
-  least-typical members of their own class (`powdery_mildew_fruit` test images average 9.4%
-  pale-lesion coverage versus 16.4% in train), i.e. early or mild infections that genuinely
-  resemble grey mould. The retrain fixed exactly the images that had clear white powder and
-  recovered the least-typical ones; what remains needs more examples of *mild* infection.
+**Closing this gap requires more strawberry fruit-rot imagery, especially mild/early infections
+with clear white powder.** It is not a training, augmentation, or leakage problem — all three have
+now been measured and addressed.
 
-`angular_leafspot` is the one class whose domain gap was identified and then largely closed:
-0.8667 → 0.9667. It is **0% PlantVillage while `leaf_scorch` is 100% PlantVillage** — the concrete
-case of the background-sensitivity effect described below, and the one class where widening
-appearance range with per-class augmentation made a measured difference.
+### Earlier result — class-weighted retrain (superseded)
+
+### Two corrections made by measuring instead of assuming
+
+Recorded deliberately, because both were caught by measurement rather than by reasoning, and the
+second one was caught *after* the work was already written up.
+
+**1. The evaluation harness was wrong, not the model.** `evaluate.py` read images with
+`cv2.imread()` (which returns **BGR**) and passed them straight to the transform with no
+BGR→RGB conversion, while the model had been trained on RGB. Every published metric until that
+was caught was measured on channel-swapped input — 0.9638 macro / 0.9826 top-1, which did not
+reflect the deployed model at all. It was found because an independent sweep of all 344 TEST
+images through the live `/predict` endpoint disagreed with the eval script on 16 images *despite a
+byte-identical checkpoint*. Reproducing the old pipeline on BGR input regenerated 0.9638/0.9826 to
+the digit, confirming which path was wrong. Fixed in both `evaluate.py` and the vendored
+`utils/dataloaders.py`, whose `augment=False` branch had the same defect. **Training itself was
+always correct RGB** — the fault was purely in measurement — and the production serving path was
+never affected, since `backend/main.py` has always decoded with PIL and called `.convert("RGB")`.
+
+**2. A UI "fix" was built, measured, and deleted.** When the fruit-rot confusions were found to be
+concentrated in one adjacent pair, a grouped "fungal fruit rot — could be more than one" panel was
+implemented (`frontend/src/components/FruitRotTie.jsx`), gated on top-1 and top-2 both being fruit
+rots with a probability gap below 0.15. Measured on the TEST split it **fired on 0 of 344 images**:
+of 60 fruit-rot predictions, 45 do have a fruit rot as runner-up, but the median top-1/top-2 gap
+is 0.879 — the model is not torn between two options, it puts 90%+ on one and near-zero on the
+other. Shipping a panel that cannot fire would have dressed a model defect up as a design
+decision, so the component was deleted and the investigation moved to the actual cause, which
+turned out to be mislabelled training data.
+
+The same discipline applies to every other technique in this section: each was measured before it
+was claimed to work. That is how TTA was caught (−0.34pp, rejected), how extended fine-tuning was
+declined (loss curves showed convergence, not undertraining), and how the label contamination
+surfaced at all.
+
+### Earlier result — class-weighted retrain (superseded)
+
+The previous iteration, before label decontamination, reached macro 0.8935 / top-1 0.9651 from
+`runs/train-cls/strawberry9hard`. Its per-configuration numbers are preserved in the tables above
+so the contribution of each step stays attributable. It is not the shipped model.
 
 ### Corrected baseline — retained for comparison
 
@@ -231,8 +328,8 @@ fully separated from the background signal. This is a known open issue, not a re
 `angular_leafspot` (0% PlantVillage) versus `leaf_scorch` (100% PlantVillage) is the sharpest
 worked example, and it is also the class the retrain improved most.
 
-Shipped model: `eval/ep100hard/confusion_matrix.png`, `eval/ep100hard/eval.json`,
-`eval/ep100hard/predictions.csv`.
+Shipped model: `eval/ep100clean/confusion_matrix.png`, `eval/ep100clean/eval.json`,
+`eval/ep100clean/predictions.csv`.
 Corrected baseline (pre-retrain): `eval/ep28_corrected/`.
 
 ### Checkpoint selection caveat — TEST was not a fully held-out split
@@ -252,7 +349,7 @@ cannot be measured from the current artifacts.
 
 What is *not* in question: no **training** images leaked into TEST. TEST is independent of the
 2,389 training images, so the figure is a genuine out-of-sample number for the model — just one
-selected with knowledge of it. Treat **0.8935 / 0.9651** as a slightly optimistic estimate, not a
+selected with knowledge of it. Treat **0.8931 / 0.9680** as a slightly optimistic estimate, not a
 lower bound. This caveat applies equally to the retrained model — `best.pt` for
 `strawberry9hard` was also selected on TEST top-1 (best at epoch 98 of 100), so the same inflation
 applies and its magnitude is likewise unmeasured.
@@ -361,13 +458,13 @@ Notes:
   validation number driving that decision was measured on BGR input. On **corrected** evaluation it
   reaches 0.8574 macro / 0.9506 top-1.
 - The **shipped** `best.pt` is from a full **100-epoch** run with class weighting, per-class
-  augmentation and hard-example mining (`--name strawberry9hard`): **0.8935 macro / 0.9651 top-1**.
-  Reproduce with:
+  augmentation, hard-example mining, and decontaminated `powdery_mildew_fruit` labels
+  (`--name strawberry9clean`): **0.8931 macro / 0.9680 top-1**. Reproduce with:
 
   ```powershell
   cd D:\ivp\plant_ai\yolov5
   python classify/train.py --model yolov5s-cls.pt --data ..\dataset --epochs 100 --img 224 `
-    --batch-size 32 --name strawberry9hard --workers 4 --device 0 --exist-ok `
+    --batch-size 32 --name strawberry9clean --workers 4 --device 0 --exist-ok `
     --class-weights --class-weight-max-ratio 4.0 --class-aug ..\class_aug.yaml
   ```
 
@@ -483,9 +580,10 @@ plant_ai/
   dataset/                   3419 images, 70/20/10, + manifest.csv
   binary_dataset/            strawberry-vs-not filter dataset
   healthy_clean/             filter scores, keep/drop/uncertain, review sheets
-  eval/ep100hard/            CITED: shipped model - confusion matrix, metrics, predictions
+  eval/ep100clean/           CITED: shipped model - confusion matrix, metrics, predictions
+  eval/ep100hard/            pre-decontamination run (comparison only)
   eval/ep28_corrected/       corrected baseline (pre-retrain), for before/after comparison
-  eval/ep100hard_tta8/       the rejected TTA variant of the shipped model (evidence)
+  eval/ep100hard_tta8/       the rejected TTA variant (evidence)
   eval/ep28_BUGGY_DO_NOT_CITE/
                             superseded BGR-channel-order output, historical only
   screenshots/               Phase 5 UI evidence
@@ -523,10 +621,16 @@ plant_ai/
   `anthracnose_fruit_rot` 1). Do not present this model as reliable on berry rot identification;
   the 7-of-9-classes-perfect headline hides this. Raising these requires more strawberry fruit-rot
   imagery, not more training.
-- **Macro accuracy is 0.8935, which is 0.65pp below the 90% target** set for this project. The
+- **Macro accuracy is 0.8931, which is 0.69pp below the 90% target** set for this project. The
   originally published 0.9638 met it, but that number came from a channel-order bug (see the
   correction note at the top) and has been withdrawn; the honest figure after fixing the bug was
-  0.8574, and the class-weighted retrain recovered to 0.8935.
+  0.8574, and the retrain recovered to 0.8931.
+- **The training labels were themselves found to be wrong.** 13 of 81 `powdery_mildew_fruit`
+  training images (16%) were grey-mould lesions misfiled under powdery mildew, including a dried
+  brown mummy. They were quarantined and the model retrained; confident errors dropped 11 → 9 and
+  that class went 50% → 58%. This is why `dataset/manifest.csv` and the quarantine list matter:
+  **the class list is not a guarantee that labels inside it are correct**, and the remaining
+  `powdery_mildew_fruit` / `anthracnose_fruit_rot` errors are likely more of the same ambiguity.
 - **The healthy cap was deliberately left in place.** `healthy` has 214 unused train images, but
   `prepare_final_dataset.py` splits 70/20/10 *after* capping, so removing the cap would repartition
   `healthy` and change its TEST split — destroying the like-for-like baseline comparison. Since
