@@ -1,9 +1,9 @@
 {
-  "weights": "D:\\ivp\\plant_ai\\yolov5\\runs\\train-cls\\strawberry9\\weights\\best.pt",
-  "tag": "ep28",
+  "weights": "yolov5\\runs\\train-cls\\strawberry9hard\\weights\\best.pt",
+  "tag": "ep100hard_tta8",
   "n_test": 344,
-  "overall_top1": 0.9825581395348837,
-  "macro_top1": 0.9638396375098502,
+  "overall_top1": 0.9622093023255814,
+  "macro_top1": 0.8912037037037037,
   "per_class": [
     {
       "class": "angular_leafspot",
@@ -13,7 +13,7 @@
     {
       "class": "anthracnose_fruit_rot",
       "support": 8,
-      "accuracy": 1.0
+      "accuracy": 0.625
     },
     {
       "class": "blossom_blight",
@@ -23,7 +23,7 @@
     {
       "class": "gray_mold",
       "support": 40,
-      "accuracy": 1.0
+      "accuracy": 0.95
     },
     {
       "class": "healthy",
@@ -43,20 +43,32 @@
     {
       "class": "powdery_mildew_fruit",
       "support": 12,
-      "accuracy": 0.75
+      "accuracy": 0.5
     },
     {
       "class": "powdery_mildew_leaf",
       "support": 47,
-      "accuracy": 0.9787234042553191
+      "accuracy": 1.0
     }
   ],
   "confused_pairs_top10": [
     {
       "true": "powdery_mildew_fruit",
       "pred": "gray_mold",
-      "count": 3,
+      "count": 5,
+      "share_of_true": 0.4166666666666667
+    },
+    {
+      "true": "anthracnose_fruit_rot",
+      "pred": "gray_mold",
+      "count": 2,
       "share_of_true": 0.25
+    },
+    {
+      "true": "gray_mold",
+      "pred": "anthracnose_fruit_rot",
+      "count": 2,
+      "share_of_true": 0.05
     },
     {
       "true": "angular_leafspot",
@@ -65,16 +77,22 @@
       "share_of_true": 0.03333333333333333
     },
     {
+      "true": "anthracnose_fruit_rot",
+      "pred": "powdery_mildew_fruit",
+      "count": 1,
+      "share_of_true": 0.125
+    },
+    {
       "true": "leaf_spot",
-      "pred": "blossom_blight",
+      "pred": "powdery_mildew_leaf",
       "count": 1,
       "share_of_true": 0.020833333333333332
     },
     {
-      "true": "powdery_mildew_leaf",
-      "pred": "powdery_mildew_fruit",
+      "true": "powdery_mildew_fruit",
+      "pred": "anthracnose_fruit_rot",
       "count": 1,
-      "share_of_true": 0.02127659574468085
+      "share_of_true": 0.08333333333333333
     }
   ],
   "by_source": {
@@ -84,10 +102,10 @@
     },
     "other": {
       "n": 234,
-      "accuracy": 0.9743589743589743
+      "accuracy": 0.9444444444444444
     }
   },
-  "pv_other_gap": 0.02564102564102566,
+  "pv_other_gap": 0.05555555555555558,
   "classes_with_both_sources": [
     {
       "class": "healthy",

@@ -26,7 +26,7 @@ raw = model.names
 names = [str(raw[i]) for i in sorted(raw)] if isinstance(raw, dict) else [str(n) for n in raw]
 tf = classify_transforms(224)
 
-preds = {r["path"]: r for r in csv.DictReader((PROJECT / "eval" / "ep28" / "predictions.csv").open(encoding="utf-8"))}
+preds = {r["path"]: r for r in csv.DictReader((PROJECT / "eval" / "ep28_corrected" / "predictions.csv").open(encoding="utf-8"))}
 rows = [r for r in csv.DictReader((DATASET / "manifest.csv").open(encoding="utf-8"))
         if r["split"] == "test" and r["is_dup_copy"] == "False"]
 

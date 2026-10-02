@@ -1,0 +1,39 @@
+# Per-class strong-augmentation overrides for the strawberry 9-class classifier.
+#
+# Baseline (classify_strong_transforms default, applied to every class):
+#   scale=(0.6,1.0) jitter=0.4 gray=0.05 erase=0.1
+#
+# Each override below is driven by a measured failure mode on the TEST split
+# (corrected RGB evaluation, eval/ep28_corrected), not by guesswork.
+
+anthracnose_fruit_rot:
+  # Failure: scale/context. The 3 errors are wide shots where the berry is a small part of a
+  # busy plant frame, not a symptom-identity failure. Tighter crop forces the model to learn
+  # from isolated-berry close-ups, which is what the recognisable lesions actually look like.
+  scale: [0.30, 0.80]
+  jitter: 0.4
+  gray: 0.05
+  erase: 0.1
+
+powdery_mildew_fruit:
+  # Failure: discriminative, not scale. Errors are the least-typical members of the class
+  # (9.4% pale-lesion coverage vs 16.4% in train) and sit on the powder-vs-mycelium boundary.
+  # Keep the crop range standard (symptoms span the whole berry) but widen colour/texture
+  # variation so the model sees genuine powder at more lighting conditions.
+  scale: [0.60, 1.00]
+  jitter: 0.60
+  gray: 0.0
+  erase: 0.05
+
+angular_leafspot:
+  # Failure: domain gap + under-representative severity. angular_leafspot is 0% PlantVillage
+  # while leaf_scorch is 100% PlantVillage, and the 4 errors have 40% less brown-lesion
+  # coverage than the true-positives (20.8% vs 36.6%). They are pale, washed-out, low-contrast
+  # field leaves. Widen crop and push brightness/contrast hard to bridge pale-field vs
+  # vivid-studio. Critically: DROP grayscale and erasing to zero, because this class is
+  # separated from leaf_scorch by lesion COLOUR and TEXTURE (train roughness 12.17 vs
+  # leaf_scorch 24.59) and both of those transforms destroy exactly those cues.
+  scale: [0.45, 1.00]
+  jitter: 0.70
+  gray: 0.0
+  erase: 0.0

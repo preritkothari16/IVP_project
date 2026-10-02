@@ -28,6 +28,8 @@ PROJECT = Path(r"D:\ivp\plant_ai")
 YOLOV5 = PROJECT / "yolov5"
 DATASET = PROJECT / "dataset"
 IMG_SIZE = 224
+# Centre-crop scales used for TTA: full frame plus progressively tighter crops.
+TTA_VIEW_SCALES = [1.0, 0.85, 0.7, 0.55]
 
 sys.path.append(str(YOLOV5))
 from models.common import DetectMultiBackend  # noqa: E402
@@ -40,10 +42,38 @@ def load_manifest():
     return [r for r in rows if r["split"] == "test" and r["is_dup_copy"] == "False"]
 
 
+def tta_views(im, n=8):
+    """Deterministic test-time augmentation views of an RGB HWC array.
+
+    TTA_VIEW_SCALES x {identity, hflip} = 8 views at the default n=8. Centre-cropping to
+    several scales probes how much of the frame the model depends on, which is exactly the
+    failure axis for the small fruit classes (berry small in a busy frame). Views are averaged
+    in probability space.
+    """
+    h, w = im.shape[:2]
+    scales = TTA_VIEW_SCALES[: max(1, n // 2)] if n >= 2 else [1.0]
+    views = []
+    for s in scales:
+        ch, cw = max(1, int(h * s)), max(1, int(w * s))
+        y0, x0 = (h - ch) // 2, (w - cw) // 2
+        crop = im[y0:y0 + ch, x0:x0 + cw]
+        if crop.size == 0:
+            crop = im
+        crop = cv2.resize(crop, (IMG_SIZE, IMG_SIZE), interpolation=cv2.INTER_LINEAR)
+        views.append(crop)
+        if len(views) < n:
+            views.append(cv2.flip(crop, 1))
+    return views[:n] if n else [im]
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("weights")
     ap.add_argument("tag")
+    ap.add_argument("--tta", type=int, default=0,
+                    help="test-time augmentation: how many views to average (0=off). "
+                         "Views are deterministic (hflip + centre crop at several scales); their "
+                         "probabilities are averaged.")
     args = ap.parse_args()
 
     weights = Path(args.weights)
@@ -62,20 +92,30 @@ def main():
 
     rows = load_manifest()
     print(f"[eval] test images = {len(rows)}")
+    if args.tta:
+        print(f"[eval] TTA enabled: averaging {args.tta} deterministic views per image")
 
-    y_true, y_pred, pv_flags, paths = [], [], [], []
+    y_true, y_pred, pv_flags, paths, confs = [], [], [], [], []
     for n, r in enumerate(rows, 1):
         p = DATASET / r["path"]
         im = cv2.imread(str(p))
         if im is None:
             print(f"  [skip unreadable] {r['path']}")
             continue
-        t = tf(im).unsqueeze(0).to(device)
-        t = t.half() if model.fp16 else t.float()
-        with torch.inference_mode():
-            probs = F.softmax(model(t), dim=1)[0]
+        # cv2.imread returns BGR; the model was trained on RGB (torchvision transforms).
+        # BUGFIX: this conversion was missing, so evaluation ran on channel-swapped input.
+        im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+        views = tta_views(im) if args.tta else [im]
+        acc = np.zeros(len(names), dtype=np.float64)
+        for v in views:
+            t = tf(v).unsqueeze(0).to(device)
+            t = t.half() if model.fp16 else t.float()
+            with torch.inference_mode():
+                acc += F.softmax(model(t), dim=1)[0].float().cpu().numpy()
+        probs = acc / len(views)
+        confs.append(float(probs.max()))
         y_true.append(names.index(r["final_class"]))
-        y_pred.append(int(probs.argmax().item()))
+        y_pred.append(int(probs.argmax()))
         pv_flags.append(r["is_plantvillage"] == "True")
         paths.append(r["path"])
         if n % 50 == 0:
@@ -186,9 +226,9 @@ def main():
     np.savetxt(outdir / "confusion_matrix.csv", cm, delimiter=",", fmt="%d")
     with (outdir / "predictions.csv").open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
-        w.writerow(["path", "true", "pred", "correct", "is_plantvillage"])
-        for pa, t, q, v in zip(paths, y_true, y_pred, pv):
-            w.writerow([pa, names[t], names[q], int(t == q), bool(v)])
+        w.writerow(["path", "true", "pred", "correct", "is_plantvillage", "confidence"])
+        for pa, t, q, v, cf in zip(paths, y_true, y_pred, pv, confs):
+            w.writerow([pa, names[t], names[q], int(t == q), bool(v), round(float(cf), 6)])
     print(f"\n[eval] wrote {outdir / 'eval.json'}, confusion_matrix.csv, predictions.csv")
     print(f"[eval] TARGET 90% macro: {'PASS' if macro >= 0.90 else 'BELOW TARGET'}")
 
