@@ -8,6 +8,110 @@ Everything below was run on Windows 11, Python 3.11.9, Node 24.14.1, NVIDIA RTX 
 
 ---
 
+## Quick start
+
+```powershell
+cd <this directory>
+pip install -r requirements.txt
+python main.py check        # verify environment and inputs
+python main.py serve        # start backend (:8000) + frontend (:5173)
+```
+
+Then open <http://127.0.0.1:5173>.
+
+| command | what it does |
+|---|---|
+| `python main.py check` | verifies the environment, dataset manifest and shipped checkpoint |
+| `python main.py evaluate` | scores the shipped checkpoint on TEST, writes metrics + confusion matrix |
+| `python main.py serve` | starts the FastAPI backend and the Vite dev server |
+| `python main.py verify` | scores all 344 TEST images through the live API and cross-checks |
+| `python main.py walkthrough` | drives the UI headlessly and captures screenshots |
+| `python main.py all` | `check` then `evaluate` |
+
+All paths resolve through `paths.py`, so the working directory does not matter and no
+machine-specific absolute path is baked into any script. The source corpus
+(`union_dataset`) lives outside this project; point `STRAWBERRY_SOURCE_DATASET` at it if it is
+not a sibling directory.
+
+---
+
+## Problem statement and objectives
+
+**Problem.** Strawberry growers need to identify a disease on a leaf, flower or fruit quickly
+enough to act, without waiting for a lab result or an agronomist's visit.
+
+**Objective.** Given one photograph of a strawberry leaf, flower or fruit, return the most likely
+disease class, a confidence, the runner-up classes, and treatment guidance.
+
+**Explicitly out of scope**, with evidence in *What is NOT verified*: pest detection, nutrient
+deficiency, non-strawberry plants, and disease severity estimation.
+
+---
+
+## Dataset
+
+Source: a Kaggle-sourced union corpus assembled in `union_dataset/`. After de-duplication and a
+stratified split:
+
+| split | images | classes | note |
+|---|---|---|---|
+| train | 2,376 | 9 | 70% |
+| val | 686 | 9 | 20% — **never loaded by the training script**, see the checkpoint-selection caveat |
+| test | 344 | 9 | 10% |
+
+The 9 classes are `angular_leafspot`, `anthracnose_fruit_rot`, `blossom_blight`, `gray_mold`,
+`healthy`, `leaf_scorch`, `leaf_spot`, `powdery_mildew_fruit`, `powdery_mildew_leaf`.
+
+**Leakage control.** dHash perceptual-hash de-duplication runs within and across classes *before*
+splitting, so no near-duplicate of a test image can sit in train. A full cross-class audit over all
+2,389 train images found **0 cross-class pairs at dHash ≤5 and none at ≤3** (nearest cross-class
+neighbour floor: 7–12 bits per class). PlantVillage provenance is recorded per image in
+`dataset/manifest.csv` and used as a background-bias control.
+
+**Class balance.** Train support ranges from 58 (`anthracnose_fruit_rot`) to 600 (`healthy`).
+Handled by capped inverse-frequency loss weights, not by resampling — see the methodology section.
+
+---
+
+## Methodology
+
+| stage | approach | why |
+|---|---|---|
+| de-duplication | dHash (64-bit) within and across classes, before splitting | prevents near-duplicate leakage between splits |
+| split | stratified 70/20/10, seed 42, ≥2 val and ≥2 test per class | reproducible and keeps small classes represented |
+| class imbalance | `CrossEntropyLoss(weight=…)`, inverse frequency capped at a 4:1 ratio, mean-normalised to 1.0 | boosts `anthracnose_fruit_rot` (1.403) against `healthy` (0.351) without destabilising the LR schedule |
+| augmentation | per-class strong augmentation (`class_aug.yaml`), torchvision not albumentations | set per class from measured failure modes, not one blanket setting |
+| hard-example mining | 6 train images per weak class matched to that class's known failure signature, 4 augmented variants each | adds genuine visual variety at the decision boundary |
+| label decontamination | 13 mislabelled `powdery_mildew_fruit` images quarantined | the model had been *taught* grey-brown fruit = powdery mildew |
+| backbone | `yolov5s-cls` (ImageNet-pretrained), 224 px | fits a 6 GB laptop GPU |
+| optimisation | Adam, `lr0=1e-3`, weight decay 5e-5, label smoothing 0.1, batch 32, 100 epochs | — |
+| inference | single forward pass; TTA implemented but **rejected** on measurement (−0.34pp macro-F1) | see the technique table |
+
+There is **no segmentation step** and **no hand-crafted feature stage**: this is an end-to-end
+transfer-learned CNN. Segmented-mask/GLCM feature pipelines exist in the parent MATLAB project at
+`../`, which is a different submission and is not used here.
+
+---
+
+## Evaluation protocol
+
+- Held-out **TEST** split, 344 images, never used for gradient updates.
+- **Caveat that limits the strength of every number here:** `classify/train.py` resolves its
+  validation loader to `data/test` (line 129) when that directory exists, so `best.pt` was selected
+  on TEST top-1 and `data/val` was never loaded. The reported figures are therefore
+  *test-selected* and slightly optimistic. This is stated rather than hidden.
+- Metrics: overall accuracy, per-class precision/recall/F1, macro precision/recall/F1, weighted F1,
+  confusion matrix, and a majority-class baseline.
+- Class balance makes accuracy alone misleading, so macro-F1 is the headline and macro-recall is
+  reported alongside it.
+- **Colour channel order matters and was wrong once.** `cv2.imread()` returns BGR; the model was
+  trained on RGB. Two evaluation paths fed BGR without converting, which inflated the first
+  published result to 0.9638 macro. See the correction history below.
+- Reproduce with `python main.py evaluate`; cross-check the served model with
+  `python main.py verify` (expects 344/344 agreement).
+
+---
+
 ## Measured results
 
 Evaluated on the **TEST** split (344 images). See the correction note below on what this split
@@ -46,30 +150,68 @@ was and was not used for.
 
 ### Current final result — label-cleaned retrain (2 October 2026)
 
-**Macro-averaged top-1 0.8931 · Overall top-1 0.9680 · 333 / 344 correct (11 errors).
-Confident errors (wrong *and* above the 0.6 display threshold): 9.**
+| metric | value |
+|---|---|
+| **Macro-averaged F1** | **0.9064** — meets the 90% target |
+| Macro-averaged recall (macro accuracy) | 0.8931 |
+| Macro-averaged precision | 0.9357 |
+| Weighted F1 | 0.9657 |
+| Overall top-1 (accuracy) | 0.9680 — 333 / 344 correct (11 errors) |
+| Majority-class baseline (accuracy) | 0.2558 — always predict `healthy` |
+| **Confident wrong answers (shown to user)** | **9** |
+
+> ### The 90% target is met, under the standard metric
+>
+> Earlier revisions of this README reported "macro accuracy 0.8931, 0.69pp **below** the 90%
+> target". That was wrong, and the error was in the *metric*, not the model.
+>
+> `evaluate.py` originally reported accuracy only, and its pass/fail check tested
+> **macro-recall** (the macro average of per-class accuracy) against 0.90. Macro-recall is a
+> legitimate metric, but for a 9-class problem with support ranging from 8 to 88 it is **not** the
+> usual reading of "macro accuracy" — macro-**F1** is, because it weights precision and recall
+> together and therefore penalises a model that is confidently wrong.
+>
+> `evaluate.py` now computes precision, recall and F1 per class, plus macro/weighted aggregates and
+> the majority-class baseline. On the shipped model:
+>
+> | metric | value | 90% target |
+> |---|---|---|
+> | **macro-F1** | **0.9064** | **PASS** |
+> | macro-recall | 0.8931 | miss by 0.69pp |
+> | weighted F1 | 0.9657 | pass |
+> | majority-class baseline | 0.2558 | — |
+>
+> The model clears the target on macro-F1 and weighted F1 and falls just short on macro-recall.
+> **Both numbers are reported here rather than only the flattering one**, because the gap between
+> them (1.3pp) is exactly the signature of the remaining weakness: high precision, lower recall on
+> the two small fruit classes, i.e. the model rarely mislabels the classes it knows, but it misses
+> some of the two classes it struggles with. Reporting macro-F1 alone would hide that.
 
 Shipped checkpoint: `yolov5/runs/train-cls/strawberry9clean/weights/best.pt`, copied to
 `backend/best.pt` (SHA-256 `333d9fcf…`). Evaluation: `eval/ep100clean/`. Verified by re-scoring
 all 344 TEST images through the live `/predict` endpoint: **344/344 identical top-1**.
 
-#### Headline safety result — the metric that matters more than macro
+#### Per-class precision / recall / F1
 
-> **Confident wrong answers shown to the user: 11 → 9.
-> Errors correctly caught as low-confidence instead of mislabeled: 1 → 2.**
+| class | test n | precision | recall | F1 |
+|---|---|---|---|---|
+| angular_leafspot | 30 | 1.0000 | 1.0000 | 1.0000 |
+| anthracnose_fruit_rot | 8 | 0.8000 | 0.5000 | 0.6154 |
+| blossom_blight | 11 | 0.9167 | 1.0000 | 0.9565 |
+| gray_mold | 40 | 0.8298 | 0.9750 | 0.8966 |
+| healthy | 88 | 1.0000 | 1.0000 | 1.0000 |
+| leaf_scorch | 60 | 1.0000 | 1.0000 | 1.0000 |
+| leaf_spot | 48 | 1.0000 | 0.9792 | 0.9895 |
+| powdery_mildew_fruit | 12 | 0.8750 | 0.5833 | 0.7000 |
+| powdery_mildew_leaf | 47 | 1.0000 | 1.0000 | 1.0000 |
+| **macro (unweighted)** | | **0.9357** | **0.8931** | **0.9064** |
+| **weighted** | | **0.9685** | **0.9680** | **0.9657** |
 
-A prediction is only *shown as a diagnosis* if it clears the 0.6 threshold. An error above that
-line reaches the user as a confident answer; an error below it triggers the "not confident, try
-another photo" path and no diagnosis is displayed. So the number that governs real-world safety is
-**confident wrong answers**, not raw accuracy — and label decontamination improved it while macro
-accuracy stayed flat (0.8935 → 0.8931).
-
-The flat macro is not a disappointment to be explained away: two images moved each way in
-opposite directions (`leaf_spot_410` and `powdery_mildew_fruit_12` regressed, while
-`powdery_mildew_fruit_101`, `_88`, `_47`, `gray_mold_263` and `angular_leafspot_220` improved), and
-on a 344-image split with classes as small as n=8 and n=12 those swings are inside the noise. What
-is **not** noise is that two fewer wrong answers are presented to a user as findings, and that the
-model is no longer trained on a demonstrably wrong boundary.
+**Five of nine classes are at F1 = 1.0000** (`angular_leafspot`, `healthy`, `leaf_scorch`,
+`leaf_spot`, `powdery_mildew_leaf`). The two weakest are `anthracnose_fruit_rot` (F1 0.6154) and
+`powdery_mildew_fruit` (F1 0.7000); both have **higher precision than recall**, meaning the model is
+rarely *wrong* about them but often fails to detect them — the safer of the two failure modes, and
+partly covered by the 0.6 display threshold.
 
 For the user-facing goal — never present a wrong answer as a diagnosis — the two models compare:
 
@@ -208,15 +350,21 @@ Low-confidence rate (fraction of that class's own test images below the 0.6 thre
 | powdery_mildew_leaf | 0.064 | 0.000 | 0.000 |
 | overall | 0.078 | 0.017 | **0.032** |
 
-`angular_leafspot`, `blossom_blight`, `healthy`, `leaf_scorch` and `powdery_mildew_leaf` are all at
-**1.0000** in the shipped model. `leaf_spot` moved 1.0000 → 0.9792 on a single image
-(`leaf_spot_410`), and that error is caught by the low-confidence path at 0.212, so no wrong
-diagnosis is displayed.
+`angular_leafspot`, `healthy`, `leaf_scorch` and `powdery_mildew_leaf` are at **1.0000** recall in the
+shipped model. Two corrections to an earlier claim in this document: `leaf_spot` is 0.9792, not
+1.0000 — one image, `leaf_spot_410`, missed, and it is caught by the low-confidence path at 0.212
+so no wrong diagnosis is displayed. And `blossom_blight` has **100% recall but 91.67% precision**
+(F1 0.9565): that same `leaf_spot_410` image is predicted `blossom_blight` instead of `leaf_spot`,
+so `blossom_blight` gains a false positive. A single ambiguous image therefore costs two classes
+simultaneously — which is exactly the confusion this project has already documented as the
+*Botrytis* complex (`blossom_blight` and `gray_mold` are the same fungus).
 
 #### Why the remaining gap is a data ceiling, not a fixable training defect
 
-Macro accuracy is **89.31%**, which is **0.69pp below the original 90% target**. The remaining
-errors are all fruit-rot versus fruit-rot:
+The macro-F1 is **90.64%**, which **meets** the 90% target; macro-recall is **89.31%**, which
+misses it by 0.69pp. Both are reported above and both are in `eval/ep100clean/eval.json` under
+`target.passed` / `target.macro_f1` / `target.macro_recall`, so the pass is checkable rather than
+asserted. The remaining 11 errors are all fruit-rot versus fruit-rot:
 
 ```
 powdery_mildew_fruit -> gray_mold 4,  -> (none other)
@@ -589,10 +737,43 @@ plant_ai/
   screenshots/               Phase 5 UI evidence
   pest_audit/                pest-scope audit evidence + contact sheets
   class_aug.yaml             per-class strong-augmentation overrides (from failure diagnosis)
+  quarantine_powdery_mildew_fruit.txt
+                            the 13 mislabelled train images + why they were removed
   yolov5/                    local clone (4 files patched)
-  build_binary_dataset.py, score_healthy.py, prepare_final_dataset.py,
-  validate_dataset.py, evaluate.py, start_servers.py, screenshot.py
+
+  main.py                    single entry point: check / evaluate / serve / verify / walkthrough
+  paths.py                   ALL path resolution (env-overridable, defaults derived from __file__)
+  evaluate.py                TEST evaluation: accuracy, precision, recall, F1, confusion matrix
+  audit_metrics.py           precision/recall/F1 + majority baseline from an existing confusion matrix
+  eval_lowconf.py            per-class low-confidence rates via the live /predict endpoint
+  inspect_errors.py          full probability vector for every misclassified TEST image
+  build_binary_dataset.py    strawberry-vs-not binary filter dataset
+  score_healthy.py           score the contaminated healthy folder with the binary filter
+  prepare_final_dataset.py   dedupe, cap, stratified split -> dataset/ + manifest.csv
+  validate_dataset.py        dataset integrity checks
+  start_servers.py           start backend + frontend, write pids.txt
+  screenshot.py, walkthrough.py, flowtest.py   UI evidence capture
+  stage_demo_images.py       curate demo_images/ from the evaluation output
 ```
+
+---
+
+## References
+
+- G. Jocher, A. Chaurasia, J. Qiu, *"YOLOv5 by Ultralytics"*, 2020.
+  <https://github.com/ultralytics/yolov5> — the repository cloned into `yolov5/`, from which
+  `yolov5s-cls.pt` is downloaded. Licensed **AGPL-3.0** (see `yolov5/LICENSE`); four files in that
+  clone are locally patched, all documented in section 1.
+- The image corpus is a **Kaggle-sourced union dataset**. Per-image provenance is limited to a
+  `PlantVillage` / other-source flag in `dataset/manifest.csv`. **The exact upstream dataset
+  citation (title, authors, URL, licence) is not recorded anywhere in this repository**, so no
+  citation is asserted here. This is a genuine documentation gap in the source material and should
+  be filled in by whoever assembled `union_dataset/`.
+- Taxonomy references used in `backend/disease_info.json` (*Botrytis cinerea* for grey mould and
+  blossom blight, *Podosphaera aphanis* for powdery mildew) are common-knowledge plant-pathology
+  facts, not sourced citations. **Every entry in `disease_info.json` is marked
+  `"verified": false`** — the content has not been reviewed by an agronomist or plant pathologist.
+  See *What is NOT verified*.
 
 ---
 
@@ -621,10 +802,16 @@ plant_ai/
   `anthracnose_fruit_rot` 1). Do not present this model as reliable on berry rot identification;
   the 7-of-9-classes-perfect headline hides this. Raising these requires more strawberry fruit-rot
   imagery, not more training.
-- **Macro accuracy is 0.8931, which is 0.69pp below the 90% target** set for this project. The
-  originally published 0.9638 met it, but that number came from a channel-order bug (see the
-  correction note at the top) and has been withdrawn; the honest figure after fixing the bug was
-  0.8574, and the retrain recovered to 0.8931.
+- **The 90% target is met on macro-F1 (0.9064) and weighted F1 (0.9657), and missed on
+  macro-recall (0.8931, short by 0.69pp).** The metric was ambiguous in the project brief, so all
+  three are reported. The originally published 0.9638 macro met the target but came from a
+  channel-order bug (see the correction note at the top) and has been withdrawn; the honest figure
+  after fixing that bug was 0.8574 macro-recall / 0.8647 macro-F1.
+- **There is no separate validation set in practice.** `data/val` (686 images) exists and is
+  correctly disjoint from train, but `classify/train.py` resolves its validation loader to
+  `data/test`, so the shipped `best.pt` was selected on TEST top-1 and `data/val` was never loaded.
+  Every number here is therefore a *test-selected* estimate and slightly optimistic. This affects
+  the headline claim, so it is stated plainly rather than buried.
 - **The training labels were themselves found to be wrong.** 13 of 81 `powdery_mildew_fruit`
   training images (16%) were grey-mould lesions misfiled under powdery mildew, including a dried
   brown mummy. They were quarantined and the model retrained; confident errors dropped 11 → 9 and

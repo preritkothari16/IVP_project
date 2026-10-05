@@ -8,6 +8,7 @@ Selection is deterministic (seeded) and every copy is verified correct against t
 TEST predictions, so a "known good" really is known-good.
 """
 
+import paths  # central path configuration; see paths.py
 import csv
 import json
 import random
@@ -21,11 +22,11 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-PROJECT = Path(r"D:\ivp\plant_ai")
+PROJECT = paths.PROJECT
 YOLOV5 = PROJECT / "yolov5"
-DATASET = PROJECT / "dataset"
-DEMO = PROJECT / "demo_images"
-EVAL = PROJECT / "eval" / "ep28_corrected"
+DATASET = paths.DATASET
+DEMO = paths.DEMO_IMAGES
+EVAL = paths.EVAL_DIR / "ep28_corrected"
 SEED = 7
 LOW_CONF_SRC = DATASET / "test" / "leaf_spot" / "leaf_spot_410.jpg"
 WEIGHTS = PROJECT / "backend" / "best.pt"
@@ -34,6 +35,7 @@ sys.path.append(str(YOLOV5))
 from models.common import DetectMultiBackend  # noqa: E402
 from utils.augmentations import classify_transforms  # noqa: E402
 from utils.torch_utils import select_device  # noqa: E402
+
 
 device = select_device("")
 _model = DetectMultiBackend(str(WEIGHTS), device=device, fuse=False)

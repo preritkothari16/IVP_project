@@ -3,14 +3,16 @@ Step 2: run the full user flow 5x in a row in one browser session, with no resta
 Watches for state leak, stale predictions, stuck UI, and memory growth.
 """
 
+import paths  # central path configuration; see paths.py
 import csv
 import statistics
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-PROJECT = Path(r"D:\ivp\plant_ai")
-DATASET = PROJECT / "dataset"
+
+PROJECT = paths.PROJECT
+DATASET = paths.DATASET
 SHOTS = PROJECT / "screenshots" / "flowtest"
 SHOTS.mkdir(parents=True, exist_ok=True)
 URL = "http://127.0.0.1:5173/"

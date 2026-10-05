@@ -18,7 +18,7 @@ from pathlib import Path
 
 import cv2
 
-PROJECT = Path(r"D:\ivp\plant_ai")
+PROJECT = Path(__file__).resolve().parents[1]
 DATASET = PROJECT / "dataset"
 PORT = 8022
 BASE = f"http://127.0.0.1:{PORT}"

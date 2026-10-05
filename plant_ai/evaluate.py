@@ -8,6 +8,7 @@ test images (background-bias guard).
 Usage: python evaluate.py <weights.pt> <out_tag> [--test-dir ...]
 """
 
+import paths  # central path configuration; see paths.py
 import argparse
 import csv
 import json
@@ -24,9 +25,9 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-PROJECT = Path(r"D:\ivp\plant_ai")
+PROJECT = paths.PROJECT
 YOLOV5 = PROJECT / "yolov5"
-DATASET = PROJECT / "dataset"
+DATASET = paths.DATASET
 IMG_SIZE = 224
 # Centre-crop scales used for TTA: full frame plus progressively tighter crops.
 TTA_VIEW_SCALES = [1.0, 0.85, 0.7, 0.55]
@@ -35,6 +36,7 @@ sys.path.append(str(YOLOV5))
 from models.common import DetectMultiBackend  # noqa: E402
 from utils.augmentations import classify_transforms  # noqa: E402
 from utils.torch_utils import select_device  # noqa: E402
+
 
 
 def load_manifest():
@@ -126,25 +128,55 @@ def main():
     pv = np.array(pv_flags)
     n_cls = len(names)
 
-    # ---- overall + macro ----
+    # ---- overall, macro recall, macro F1 ----
     overall = float((y_true == y_pred).mean())
+
+    # confusion matrix first: precision/recall/F1 all derive from it
+    cm = np.zeros((n_cls, n_cls), dtype=np.int64)
+    for t, q in zip(y_true, y_pred):
+        cm[t, q] += 1
+    support = cm.sum(axis=1)
+    predicted = cm.sum(axis=0)
+    correct = np.diag(cm).astype(np.float64)
+
     per_class = []
     for i, nm in enumerate(names):
-        mask = y_true == i
-        support = int(mask.sum())
-        acc = float((y_pred[mask] == i).mean()) if support else float("nan")
-        per_class.append({"class": nm, "support": support, "accuracy": acc})
-    macro = float(np.nanmean([p["accuracy"] for p in per_class]))
-    print(f"\n{'=' * 66}")
-    print(f"TEST  n={len(y_true)}   overall top-1 = {overall:.4f}   MACRO top-1 = {macro:.4f}")
-    print(f"{'=' * 66}")
+        n_i = int(support[i])
+        tp = float(correct[i])
+        prec = tp / predicted[i] if predicted[i] else float("nan")
+        rec = tp / n_i if n_i else float("nan")
+        f1 = (2 * prec * rec / (prec + rec)) if n_i and predicted[i] and (prec + rec) > 0 else float("nan")
+        per_class.append({
+            "class": nm, "support": n_i, "accuracy": rec,
+            "precision": prec, "recall": rec, "f1": f1,
+            "predicted": int(predicted[i]),
+        })
 
-    print("\nper-class accuracy:")
-    print(f"{'class':24s} {'test n':>7s} {'acc':>8s} {'correct':>8s}")
-    for p in sorted(per_class, key=lambda x: (np.isnan(x["accuracy"]), x["accuracy"])):
-        c = int(round(p["accuracy"] * p["support"])) if p["support"] else 0
-        flag = "  <-- weakest" if p["accuracy"] == min(q["accuracy"] for q in per_class if q["support"]) else ""
-        print(f"{p['class']:24s} {p['support']:7d} {p['accuracy']:8.4f} {c:8d}{flag}")
+    macro_recall = float(np.nanmean([p["recall"] for p in per_class]))
+    macro_prec = float(np.nanmean([p["precision"] for p in per_class]))
+    macro_f1 = float(np.nanmean([p["f1"] for p in per_class]))
+    # majority-class baseline: always predict the most common true class
+    majority = classes_support = support.max() / support.sum()
+    majority_cls = names[int(np.argmax(support))]
+    w = support / support.sum()
+    weighted_f1 = float((w * np.nan_to_num([p["f1"] for p in per_class])).sum())
+
+    print(f"\n{'=' * 78}")
+    print(f"TEST  n={len(y_true)}")
+    print(f"  overall top-1 (accuracy) : {overall:.4f}")
+    print(f"  macro precision           : {macro_prec:.4f}")
+    print(f"  macro recall (macro acc)  : {macro_recall:.4f}")
+    print(f"  macro F1                  : {macro_f1:.4f}")
+    print(f"  weighted F1               : {weighted_f1:.4f}")
+    print(f"  majority-class baseline   : {majority:.4f}  (always predict '{majority_cls}')")
+    print(f"{'=' * 78}")
+
+    print(f"\n{'class':24s} {'n':>4s} {'prec':>7s} {'recall':>7s} {'F1':>7s} {'correct':>8s}")
+    for p in sorted(per_class, key=lambda x: (np.isnan(x["f1"]), x["f1"])):
+        c = int(round((p["recall"] if p["recall"] == p["recall"] else 0) * p["support"]))
+        flag = "  <-- weakest" if p["f1"] == min(q["f1"] for q in per_class if q["support"]) else ""
+        print(f"{p['class']:24s} {p['support']:4d} {p['precision']:7.4f} {p['recall']:7.4f} "
+              f"{p['f1']:7.4f} {c:8d}{flag}")
 
     # ---- confusion matrix ----
     cm = np.zeros((n_cls, n_cls), dtype=np.int64)
@@ -159,7 +191,7 @@ def main():
     ax.set_yticklabels(names, fontsize=9)
     ax.set_xlabel("predicted", fontsize=11)
     ax.set_ylabel("true", fontsize=11)
-    ax.set_title(f"Confusion matrix - TEST (macro {macro:.3f}, top-1 {overall:.3f})\n{weights.name}", fontsize=12)
+    ax.set_title(f"Confusion matrix - TEST (macro-F1 {macro_f1:.3f}, top-1 {overall:.3f})\n{weights.name}", fontsize=12)
     thr = cm.max() / 2 if cm.max() else 0.5
     for i in range(n_cls):
         for j in range(n_cls):
@@ -215,7 +247,25 @@ def main():
     # ---- persist ----
     out = {
         "weights": str(weights), "tag": args.tag, "n_test": len(y_true),
-        "overall_top1": overall, "macro_top1": macro,
+        "overall_top1": overall,
+        # kept for backwards compatibility with earlier eval runs: this is macro RECALL
+        # (macro-averaged per-class accuracy), not macro-F1. Prefer macro_f1 below.
+        "macro_top1": macro_recall,
+        "macro_precision": macro_prec,
+        "macro_recall": macro_recall,
+        "macro_f1": macro_f1,
+        "weighted_f1": weighted_f1,
+        "majority_class_baseline": {
+            "class": majority_cls, "accuracy": float(majority),
+            "note": "accuracy of always predicting the most frequent test class",
+        },
+        "target": {
+            "value": 0.90,
+            "metric": "macro_f1",
+            "passed": bool(macro_f1 >= 0.90),
+            "macro_f1": macro_f1,
+            "macro_recall": macro_recall,
+        },
         "per_class": per_class, "confused_pairs_top10": pairs[:10],
         "by_source": seg,
         "pv_other_gap": None if (np.isnan(a_pv) or np.isnan(a_ot)) else a_pv - a_ot,
@@ -230,7 +280,10 @@ def main():
         for pa, t, q, v, cf in zip(paths, y_true, y_pred, pv, confs):
             w.writerow([pa, names[t], names[q], int(t == q), bool(v), round(float(cf), 6)])
     print(f"\n[eval] wrote {outdir / 'eval.json'}, confusion_matrix.csv, predictions.csv")
-    print(f"[eval] TARGET 90% macro: {'PASS' if macro >= 0.90 else 'BELOW TARGET'}")
+    print(f"[eval] TARGET 90% macro-F1: {macro_f1:.4f} -> "
+          f"{'PASS' if macro_f1 >= 0.90 else 'BELOW TARGET'}")
+    print(f"[eval] (macro recall, the previously reported metric: {macro_recall:.4f} -> "
+          f"{'PASS' if macro_recall >= 0.90 else 'BELOW TARGET'})")
 
 
 if __name__ == "__main__":

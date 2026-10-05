@@ -11,6 +11,7 @@ Negatives: confirmed non-strawberry folders, capped and sampled evenly.
 15% stratified holdout for the accuracy gate.
 """
 
+import paths  # central path configuration; see paths.py
 import json
 import os
 import random
@@ -18,8 +19,9 @@ import shutil
 from collections import defaultdict
 from pathlib import Path
 
-ROOT = Path(r"D:\ivp\union_dataset")
-OUT = Path(r"D:\ivp\plant_ai\binary_dataset")
+
+ROOT = paths.SOURCE_DATASET
+OUT = paths.BINARY_DATASET
 SEED = 42
 IMG_EXT = {".jpg", ".jpeg", ".png"}
 TARGET_POS = 2000

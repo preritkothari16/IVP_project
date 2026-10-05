@@ -4,51 +4,103 @@
   "n_test": 344,
   "overall_top1": 0.9680232558139535,
   "macro_top1": 0.8930555555555555,
+  "macro_precision": 0.9357171000788023,
+  "macro_recall": 0.8930555555555555,
+  "macro_f1": 0.9064368625403897,
+  "weighted_f1": 0.9657023891312041,
+  "majority_class_baseline": {
+    "class": "healthy",
+    "accuracy": 0.2558139534883721,
+    "note": "accuracy of always predicting the most frequent test class"
+  },
+  "target": {
+    "value": 0.9,
+    "metric": "macro_f1",
+    "passed": true,
+    "macro_f1": 0.9064368625403897,
+    "macro_recall": 0.8930555555555555
+  },
   "per_class": [
     {
       "class": "angular_leafspot",
       "support": 30,
-      "accuracy": 1.0
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "predicted": 30
     },
     {
       "class": "anthracnose_fruit_rot",
       "support": 8,
-      "accuracy": 0.5
+      "accuracy": 0.5,
+      "precision": 0.8,
+      "recall": 0.5,
+      "f1": 0.6153846153846154,
+      "predicted": 5
     },
     {
       "class": "blossom_blight",
       "support": 11,
-      "accuracy": 1.0
+      "accuracy": 1.0,
+      "precision": 0.9166666666666666,
+      "recall": 1.0,
+      "f1": 0.9565217391304348,
+      "predicted": 12
     },
     {
       "class": "gray_mold",
       "support": 40,
-      "accuracy": 0.975
+      "accuracy": 0.975,
+      "precision": 0.8297872340425532,
+      "recall": 0.975,
+      "f1": 0.896551724137931,
+      "predicted": 47
     },
     {
       "class": "healthy",
       "support": 88,
-      "accuracy": 1.0
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "predicted": 88
     },
     {
       "class": "leaf_scorch",
       "support": 60,
-      "accuracy": 1.0
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "predicted": 60
     },
     {
       "class": "leaf_spot",
       "support": 48,
-      "accuracy": 0.9791666666666666
+      "accuracy": 0.9791666666666666,
+      "precision": 1.0,
+      "recall": 0.9791666666666666,
+      "f1": 0.9894736842105264,
+      "predicted": 47
     },
     {
       "class": "powdery_mildew_fruit",
       "support": 12,
-      "accuracy": 0.5833333333333334
+      "accuracy": 0.5833333333333334,
+      "precision": 0.875,
+      "recall": 0.5833333333333334,
+      "f1": 0.7000000000000001,
+      "predicted": 8
     },
     {
       "class": "powdery_mildew_leaf",
       "support": 47,
-      "accuracy": 1.0
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "predicted": 47
     }
   ],
   "confused_pairs_top10": [

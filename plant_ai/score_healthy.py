@@ -5,6 +5,7 @@ keep / drop / uncertain. Also writes numbered 8x8 review sheets plus random
 kept/dropped spot-check sheets.
 """
 
+import paths  # central path configuration; see paths.py
 import csv
 import json
 import random
@@ -16,11 +17,11 @@ import torch
 import torch.nn.functional as F
 from PIL import Image, ImageDraw, ImageFont
 
-PROJECT = Path(r"D:\ivp\plant_ai")
+PROJECT = paths.PROJECT
 YOLOV5 = PROJECT / "yolov5"
 WEIGHTS = YOLOV5 / "runs" / "train-cls" / "filter" / "weights" / "best.pt"
-HEALTHY_DIR = Path(r"D:\ivp\union_dataset\healthy")
-OUT = PROJECT / "healthy_clean"
+HEALTHY_DIR = paths.SOURCE_DATASET / "healthy"
+OUT = paths.HEALTHY_CLEAN
 SHEETS = OUT / "review_uncertain"
 SPOT = OUT / "spotcheck"
 IMG_SIZE = 224
@@ -32,6 +33,7 @@ sys.path.append(str(YOLOV5))
 from models.common import DetectMultiBackend  # noqa: E402
 from utils.augmentations import classify_transforms  # noqa: E402
 from utils.torch_utils import select_device  # noqa: E402
+
 
 try:
     FONT = ImageFont.truetype("C:/Windows/Fonts/arialbd.ttf", 26)

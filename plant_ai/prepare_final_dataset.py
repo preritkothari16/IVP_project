@@ -11,6 +11,7 @@ Step 3a: build the final 9-class training dataset.
    PlantVillage fraction per split.
 """
 
+import paths  # central path configuration; see paths.py
 import csv
 import json
 import random
@@ -20,9 +21,10 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-SRC = Path(r"D:\ivp\union_dataset")
-SCORES = Path(r"D:\ivp\plant_ai\healthy_clean\healthy_scores.csv")
-OUT = Path(r"D:\ivp\plant_ai\dataset")
+
+SRC = paths.SOURCE_DATASET
+SCORES = paths.HEALTHY_CLEAN / 'healthy_scores.csv'
+OUT = paths.DATASET
 SEED = 42
 IMG_EXT = {".jpg", ".jpeg", ".png"}
 DHASH_BITS = 64

@@ -1,8 +1,10 @@
+import paths  # central path configuration; see paths.py
 import csv
 from collections import Counter, defaultdict
 from pathlib import Path
 
-OUT = Path(r"D:\ivp\plant_ai\dataset")
+
+OUT = paths.DATASET
 rows = list(csv.DictReader((OUT / "manifest.csv").open(encoding="utf-8")))
 
 disk = Counter()

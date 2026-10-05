@@ -3,15 +3,41 @@ Step 4: the presentable demo walkthrough. Captures each step with a real screens
 reports exactly what the UI shows. Runs against the already-running servers.
 """
 
+import paths  # central path configuration; see paths.py
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-PROJECT = Path(r"D:\ivp\plant_ai")
-DEMO = PROJECT / "demo_images"
-OUT = PROJECT / "screenshots" / "walkthrough"
+
+PROJECT = paths.PROJECT
+DEMO = paths.DEMO_IMAGES
+OUT = paths.SCREENSHOTS / "walkthrough"
+APP_URL = "http://127.0.0.1:5173"
+API_URL = "http://127.0.0.1:8000/health"
+
+
+def preflight():
+    """Fail with an actionable message instead of a Playwright stack trace when the servers
+    are not running. Run `python start_servers.py` first."""
+    problems = []
+    for name, url in (("frontend", APP_URL), ("backend", API_URL)):
+        try:
+            urllib.request.urlopen(url, timeout=5).read(1)
+            print(f"  [ok] {name:9s} {url}")
+        except Exception as e:  # noqa: BLE001 - want the reason, whatever it is
+            problems.append(f"{name} not reachable at {url} ({e})")
+            print(f"  [--] {name:9s} {url}  NOT REACHABLE")
+    if problems:
+        raise SystemExit(
+            "\nwalkthrough.py needs both servers running. Start them first:\n\n"
+            "    python start_servers.py\n\n"
+            "then re-run:\n\n    python walkthrough.py\n\n"
+            "Details:\n  " + "\n  ".join(problems)
+        )
 OUT.mkdir(parents=True, exist_ok=True)
-URL = "http://127.0.0.1:5173/"
+URL = APP_URL
 
 CONFIDENT = DEMO / "gray_mold__gray_mold_49.jpg"
 LOW_CONF = DEMO / "HARD__low_confidence__leaf_spot_410.jpg"
@@ -29,6 +55,8 @@ def wait_result(page):
 
 
 def main():
+    preflight()
+
     with sync_playwright() as pw:
         b = pw.chromium.launch()
 
@@ -77,7 +105,8 @@ def main():
         print("  'not confident' state :", "Not confident about this one" in body)
         print("  'try clearer photo'   :", "single leaf or a single fruit" in body)
         print("  no result card leaked:", "TOP MATCHES" not in body.upper())
-        print("  shows alternatives   :", "What it leaned towards" in body)
+        # the UI renders this heading in uppercase (CSS text-transform), so match case-insensitively
+        print("  shows alternatives   :", "what it leaned towards" in body.lower())
         ctx.close()
 
         # ============ STEP 4: powdery mildew merged ============
@@ -122,8 +151,13 @@ def main():
         page.screenshot(path=str(OUT / "step5_bad_input.png"), full_page=True)
         body = page.inner_text("body")
         print("\nSTEP 5 bad input (.txt bytes renamed .jpg)")
-        print("  clean error shown :", "not a JPG" in body or "not a JPG, PNG" in body)
-        print("  no stack trace    :", "Traceback" not in body and "  at " not in body)
+        # backend returns HTTP 400 {"detail":"File is not a readable image."}; the UI shows
+        # "Could not analyse that photo" + that message + a retry button.
+        low = body.lower()
+        print("  clean error heading :", "could not analyse that photo" in low)
+        print("  backend message shown:", "not a readable image" in low)
+        print("  retry offered       :", "try another photo" in low)
+        print("  no stack trace      :", "Traceback" not in body and "  at " not in body)
         bad.unlink()
         ctx.close()
 

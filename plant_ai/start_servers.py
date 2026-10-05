@@ -1,13 +1,24 @@
 """Start the backend and the Vite dev server, and keep them running in the background."""
 
+import paths  # central path configuration; see paths.py
 import os
+import shutil
 import subprocess
 import sys
 import time
 import urllib.request
+from pathlib import Path
 
-ROOT = r"D:\ivp\plant_ai"
-NPM = r"C:\Program Files\nodejs\npm.cmd"
+
+ROOT = str(paths.PROJECT)
+
+# npm is not always on PATH for GUI-launched processes (it is a .cmd shim on Windows and the
+# PATH used by the desktop differs from the one in a terminal). Resolve it robustly:
+# explicit override, then PATH lookup, then the standard install location, then bare "npm".
+NPM = os.environ.get("NPM") or shutil.which("npm.cmd") or shutil.which("npm") or shutil.which("npm.exe")
+if NPM is None:
+    fallback = Path(r"C:\Program Files\nodejs\npm.cmd")
+    NPM = str(fallback) if fallback.exists() else "npm"
 
 backend = subprocess.Popen(
     [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", "8000"],

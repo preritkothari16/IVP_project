@@ -1,6 +1,7 @@
 """For every misclassified TEST image, print the full probability vector so the
 confusion can be judged from the model's own numbers."""
 
+import paths  # central path configuration; see paths.py
 import csv
 import sys
 from pathlib import Path
@@ -10,15 +11,16 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-PROJECT = Path(r"D:\ivp\plant_ai")
+PROJECT = paths.PROJECT
 YOLOV5 = PROJECT / "yolov5"
-DATASET = PROJECT / "dataset"
+DATASET = paths.DATASET
 WEIGHTS = YOLOV5 / "runs" / "train-cls" / "strawberry9" / "weights" / "best.pt"
 
 sys.path.append(str(YOLOV5))
 from models.common import DetectMultiBackend  # noqa: E402
 from utils.augmentations import classify_transforms  # noqa: E402
 from utils.torch_utils import select_device  # noqa: E402
+
 
 device = select_device("")
 model = DetectMultiBackend(str(WEIGHTS), device=device, fuse=False)

@@ -1,4 +1,5 @@
 """Score every image in dataset/test through the live /predict endpoint."""
+import paths  # central path configuration; see paths.py
 import csv
 import json
 import threading
@@ -10,9 +11,10 @@ from pathlib import Path
 
 from PIL import Image
 
+
 URL = "http://127.0.0.1:8000/predict"
-ROOT = Path(r"D:\ivp\plant_ai\dataset")
-OUT = Path(r"D:\ivp\plant_ai\eval\lowconf")
+ROOT = paths.DATASET
+OUT = paths.EVAL_DIR / "lowconf"
 OUT.mkdir(parents=True, exist_ok=True)
 THRESH = 0.6
 WORKERS = 4
@@ -74,7 +76,7 @@ print(f"scored {len(ok)}/{len(files)}  ->  {OUT / 'predict_test_set.csv'}")
 
 # cross-check against the training-eval output
 ref = {Path(r["path"]).name: r["pred"] for r in
-       csv.DictReader(open(r"D:\ivp\plant_ai\eval\ep28_corrected\predictions.csv", encoding="utf-8"))}
+       csv.DictReader(open(paths.EVAL_DIR / "ep28_corrected" / "predictions.csv", encoding="utf-8"))}
 shared = [r for r in ok if r["file"] in ref]
 mismatch = [r for r in shared if r["top_class"] != ref[r["file"]]]
 print(f"\nserved model vs training eval: {len(shared)} overlapping, {len(mismatch)} top-1 mismatches")

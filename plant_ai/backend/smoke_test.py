@@ -7,6 +7,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 from PIL import Image
 
@@ -50,7 +51,7 @@ def jpeg(color=(12, 120, 20), size=(96, 96)):
 def main():
     proc = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", str(PORT)],
-        cwd=r"D:\ivp\plant_ai\backend",
+        cwd=str(Path(__file__).resolve().parent),
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,

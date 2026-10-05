@@ -11,19 +11,21 @@ Captures:
   7. mobile confident result
 """
 
+import paths  # central path configuration; see paths.py
 import sys
 import time
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-PROJECT = Path(r"D:\ivp\plant_ai")
-DATASET = PROJECT / "dataset"
+PROJECT = paths.PROJECT
+DATASET = paths.DATASET
 SHOTS = PROJECT / "screenshots"
 SHOTS.mkdir(exist_ok=True)
 URL = "http://127.0.0.1:5173/"
 
 import csv
+
 
 # resolve real test images from the manifest instead of guessing filenames
 TEST = [r for r in csv.DictReader((DATASET / "manifest.csv").open(encoding="utf-8"))
