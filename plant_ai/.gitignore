@@ -7,8 +7,12 @@ healthy_clean/*
 !healthy_clean/*.csv
 
 # Local clone of ultralytics/yolov5. README section 1 documents cloning it and
-# lists the two patched files. ~80 MB, and it is a third-party repo.
+# lists the patched files. ~80 MB, and it is a third-party repo.
 yolov5/
+
+# Cached penultimate features for the k-NN baseline (~285 MB, regenerable with
+# `python baseline_knn.py`, which rebuilds them in ~30 s)
+baseline_knn/features/
 
 # Frontend deps and build output
 frontend/node_modules/

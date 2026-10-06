@@ -1,0 +1,188 @@
+{
+  "n": 344,
+  "overall_top1": 0.8372093023255814,
+  "macro_precision": 0.7557646908927744,
+  "macro_recall": 0.7544048642452897,
+  "macro_f1": 0.7312629290859946,
+  "per_class": [
+    {
+      "class": "angular_leafspot",
+      "support": 30,
+      "precision": 1.0,
+      "recall": 0.6333333333333333,
+      "f1": 0.7755102040816326
+    },
+    {
+      "class": "anthracnose_fruit_rot",
+      "support": 8,
+      "precision": 0.38461538461538464,
+      "recall": 0.625,
+      "f1": 0.4761904761904762
+    },
+    {
+      "class": "blossom_blight",
+      "support": 11,
+      "precision": 0.625,
+      "recall": 0.9090909090909091,
+      "f1": 0.7407407407407406
+    },
+    {
+      "class": "gray_mold",
+      "support": 40,
+      "precision": 0.8823529411764706,
+      "recall": 0.375,
+      "f1": 0.5263157894736842
+    },
+    {
+      "class": "healthy",
+      "support": 88,
+      "precision": 0.9247311827956989,
+      "recall": 0.9772727272727273,
+      "f1": 0.9502762430939227
+    },
+    {
+      "class": "leaf_scorch",
+      "support": 60,
+      "precision": 0.9375,
+      "recall": 1.0,
+      "f1": 0.967741935483871
+    },
+    {
+      "class": "leaf_spot",
+      "support": 48,
+      "precision": 0.8431372549019608,
+      "recall": 0.8958333333333334,
+      "f1": 0.8686868686868686
+    },
+    {
+      "class": "powdery_mildew_fruit",
+      "support": 12,
+      "precision": 0.45454545454545453,
+      "recall": 0.4166666666666667,
+      "f1": 0.43478260869565216
+    },
+    {
+      "class": "powdery_mildew_leaf",
+      "support": 47,
+      "precision": 0.75,
+      "recall": 0.9574468085106383,
+      "f1": 0.8411214953271028
+    }
+  ],
+  "confusion_matrix": [
+    [
+      19,
+      0,
+      0,
+      0,
+      6,
+      2,
+      3,
+      0,
+      0
+    ],
+    [
+      0,
+      5,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      2
+    ],
+    [
+      0,
+      0,
+      10,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      0,
+      4,
+      6,
+      15,
+      0,
+      0,
+      2,
+      5,
+      8
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      86,
+      0,
+      2,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      60,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      2,
+      43,
+      0,
+      3
+    ],
+    [
+      0,
+      4,
+      0,
+      2,
+      0,
+      0,
+      0,
+      5,
+      1
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      45
+    ]
+  ],
+  "classes": [
+    "angular_leafspot",
+    "anthracnose_fruit_rot",
+    "blossom_blight",
+    "gray_mold",
+    "healthy",
+    "leaf_scorch",
+    "leaf_spot",
+    "powdery_mildew_fruit",
+    "powdery_mildew_leaf"
+  ],
+  "method": "k-NN (k=3) on frozen YOLOv5s-cls features",
+  "k": 3,
+  "split": "test",
+  "k_selected_on": "data/val only"
+}
