@@ -860,12 +860,36 @@ The evidence is inside `union_dataset/`, not this README:
 
 Upstream sources, exactly as recorded:
 
-| key in corpus | Kaggle URL |
-|---|---|
-| `classification-mk1` | <https://www.kaggle.com/datasets/nizier193/classification-mk1> |
-| `plant-disease` | <https://www.kaggle.com/datasets/saroz014/plant-disease> |
-| `doctorp` | <https://www.kaggle.com/datasets/alexanderuzhinskiy/the-doctorp-project-dataset> |
-| `tipburn` | <https://www.kaggle.com/datasets/ercanavsar/images-of-strawberry-leaves-for-tipburn-detection> |
+Licences below were read from the **Kaggle datasets API**
+(`GET /api/v1/datasets/view/<owner>/<slug>`, field `licenseName`) on 2 October 2026.
+
+| key in corpus | title | licence | status |
+|---|---|---|---|
+| `classification-mk1` | *unknown* | **unknown** | **⚠ URL 404 — dataset no longer exists** |
+| `plant-disease` | Plant Disease | **GPL 2** | live |
+| `doctorp` | The DoctorP dataset (plant disease classification) | **CC BY-NC-SA 4.0** | live |
+| `tipburn` | Images of Strawberry Leaves for Tipburn Detection | **CC BY-NC 4.0** | live |
+
+> #### ⚠️ Two licensing problems, both material
+>
+> 1. **`classification-mk1` has been removed from Kaggle** (`https://www.kaggle.com/datasets/
+>    nizier193/classification-mk1` returns 404; the bare slug also 404s). **Its licence cannot be
+>    established**, because the licence was only ever declared on the Kaggle page and no copy of it
+>    is stored in this repository. This matters: it is the largest single contributor to the
+>    dataset — **1,326 of 2,376 train images (56%)**, 378 of 686 val, **187 of 344 test (54%)** —
+>    and the source of 6 of the 9 classes. **Redistribution rights for those images are unknown.**
+>    If the dataset was downloaded under a licence permitting redistribution, that evidence needs to
+>    be located; otherwise the derived `dataset/` should not be redistributed.
+> 2. **Two of the three surviving sources are non-commercial.**
+>    `doctorp` is **CC BY-NC-SA 4.0** and `tipburn` is **CC BY-NC 4.0**. Both prohibit commercial
+>    use, and CC BY-NC-SA additionally requires ShareAlike on derivatives. Any redistribution of the
+>    derived dataset therefore inherits a non-commercial and share-alike obligation. `plant-disease`
+>    is **GPL 2**, which is copyleft but not non-commercial.
+>
+> A licence for the *composite* — this project's `dataset/` as a whole — is **not determinable from
+> these facts**, because it is an aggregation across sources with different, partly incompatible
+> terms, one of which is unresolvable. The person who assembled `union_dataset/` must state the terms
+> they downloaded under.
 
 Per-class provenance of the 9 classes actually used (from the `dataset_link` column):
 
@@ -874,19 +898,47 @@ Per-class provenance of the 9 classes actually used (from the `dataset_link` col
 | angular_leafspot, anthracnose_fruit_rot, blossom_blight, gray_mold, powdery_mildew_fruit, powdery_mildew_leaf | `classification-mk1` | 123–400 each |
 | leaf_spot | `classification-mk1` + `doctorp` | 544 + 52 |
 | healthy | `tipburn` + `plant-disease` + `doctorp` | 626 + 456 + 191 |
-| **leaf_scorch** | **not present in the corpus CSV** | **source unrecorded** |
+| **leaf_scorch** | **absent from the corpus CSV** | **PlantVillage** (identified by 256×256 sizing, folder convention, studio background — see below) |
 
-> #### ⚠️ MANUAL ACTION REQUIRED — three gaps a reader must be given
+> #### `leaf_scorch` provenance — RESOLVED: PlantVillage
 >
-> 1. **Licence.** No licence is stated anywhere in `union_dataset/` for any of the four upstream
->    datasets, nor for the composite. **Not determinable from this repository.** Each Kaggle
->    dataset's licence must be checked on its own page and recorded here. Until then, redistribution
->    rights for the derived `dataset/` are unknown.
-> 2. **Composite title and author.** The corpus has no formal title or credited author. The four
->    owners above are the *upstream* authors, not the assembler of this composite.
-> 3. **`leaf_scorch` provenance.** Its 1,109 source images live in `union_dataset/Strawberry___Leaf_scorch/`,
->    which does **not** appear in `unified_strawberry_dataset.csv`. It was added outside the unified
->    mapping and its origin is unrecorded. This class is 60 of the 344 test images (17.5%).
+> `leaf_scorch` is **absent from `unified_strawberry_dataset.csv`**, which made its origin look
+> unrecorded. It is nonetheless identifiable with high confidence as **PlantVillage**, on four
+> independent pieces of evidence:
+>
+> | evidence | `leaf_scorch` | the other 7 classes |
+> |---|---|---|
+> | image dimensions | **256×256, P(256×256) = 1.00** | 419×419, P = 0.00 |
+> | source folder name | `Strawberry___Leaf_scorch` | plain lowercase names |
+> | background saturation | **0.089** (grey studio backdrop) | 0.24–0.61 |
+> | manifest flag | `is_plantvillage = True` | all `False` |
+>
+> 256×256 is the canonical PlantVillage release size and `Strawberry___<Disease>` is its folder
+> convention. The grey, near-achromatic border ring is the studio backdrop signature. So
+> `leaf_scorch` is PlantVillage, added outside the unified mapping — meaning the corpus CSV is
+> incomplete for provenance purposes and should not be treated as authoritative.
+>
+> This is consistent with the background-bias finding: `leaf_scorch` is 60 of 344 test images
+> (17.5%) and is 100% studio, which is why it was the class most easily confused with the
+> field-shot `angular_leafspot`.
+>
+> `healthy` is mixed: 46 of its 80 sampled images are 256×256 from `Strawberry___healthy`
+> (PlantVillage), the rest field. The other seven classes are uniformly 419×419 `classification-mk1`
+> field photography.
+
+> #### MANUAL ACTION REQUIRED — composite licence and attribution
+>
+> The four upstream licences are now known (table above), but three things remain and **cannot be
+> determined from this repository**:
+>
+> 1. **`classification-mk1`'s licence is unrecoverable** because the dataset has been removed from
+>    Kaggle, and it is the largest contributor (56% of train, 54% of test). Locate the terms under
+>    which it was originally downloaded.
+> 2. **The composite's licence.** This project aggregates sources under GPL 2, CC BY-NC-SA 4.0 and
+>    CC BY-NC 4.0 plus one unknown. Whether the derived dataset may be redistributed, and under what
+>    terms, is a decision the assembler must make and record.
+> 3. **Attribution.** The corpus has no title or credited author. The four Kaggle owners are the
+>    *upstream* authors and should be credited as such.
 
 #### Contamination the source corpus itself flags
 
@@ -918,9 +970,14 @@ comparison in this document; they are flagged here instead.
   `yolov5s-cls.pt` is downloaded. Licensed **AGPL-3.0** (see `yolov5/LICENSE`); four files in that
   clone are locally patched, all documented in section 1.
 - Four upstream Kaggle datasets, as recorded in `union_dataset/README.txt` and the
-  `dataset_link` column of `union_dataset/unified_strawberry_dataset.csv`. URLs are in
-  *Dataset citation* above; **their licences are not recorded in this repository** and must be
-  checked at source.
+  `dataset_link` column of `union_dataset/unified_strawberry_dataset.csv`. Licences were read from
+  the Kaggle datasets API on 2 October 2026 and are tabulated in *Dataset citation*: GPL 2,
+  CC BY-NC-SA 4.0 and CC BY-NC 4.0 for the three that still resolve, **unknown for the fourth, which
+  has been removed from Kaggle**.
+- **PlantVillage**, the source of `leaf_scorch` (and part of `healthy`). The canonical citation is
+  D. P. Hughes and M. Salathé, *"An open access repository of images on plant health"*, arXiv:1511.08060
+  (2015), <https://arxiv.org/abs/1511.08060>. Identified here from image geometry (256×256),
+  folder naming convention and studio backgrounds rather than from a recorded source field.
 - Taxonomy used in `backend/disease_info.json` (*Botrytis cinerea* for grey mould and blossom
   blight; *Podosphaera aphanis* for powdery mildew) is common-knowledge plant pathology, **not a
   sourced citation**. Every entry in that file is `"verified": false` — see
@@ -982,10 +1039,14 @@ the UI describes the model as expert-validated, and no entry was flipped to `ver
   cap, per-class augmentation, hard-example mining, label decontamination) was developed while
   looking at test-set results, so some optimism remains and its size cannot be measured without a
   fresh test set. The measured cost of checkpoint selection alone was 0.0231 macro-F1.
-- **The upstream dataset licence is unknown.** Four Kaggle sources are identified in
-  `union_dataset/README.txt` and `unified_strawberry_dataset.csv`, but no licence is recorded for any
-  of them, and `leaf_scorch` (17.5% of the test split) has no recorded provenance at all. See
-  *Dataset citation*.
+- **The composite dataset's licence is unresolved, and it is a redistribution blocker.** Three of the
+  four upstream Kaggle sources were checked via the Kaggle API: `plant-disease` is **GPL 2**,
+  `doctorp` is **CC BY-NC-SA 4.0**, `tipburn` is **CC BY-NC 4.0** — the latter two non-commercial.
+  The fourth, `classification-mk1`, **has been removed from Kaggle (404)**, so its licence cannot
+  be established at all, and it is the largest contributor (56% of train, 54% of test, and the sole
+  source of 6 of the 9 classes). Redistribution rights for the derived `dataset/` are therefore
+  **not determinable from this repository**. Provenance of `leaf_scorch` (17.5% of test) has since
+  been resolved as PlantVillage. See *Dataset citation*.
 - **51 `leaf_spot` images flagged `is_strawberry_disease=False` by the source corpus remain in the
   dataset** (30 train / 12 val / **9 test**). Re-scored with the project's own binary filter they
   have median `p_strawberry` 0.3596 versus 0.9501 for unflagged controls, and inspection confirms
