@@ -29,3 +29,10 @@ __pycache__/
 # excludes *.csv globally, which would drop eval/ep28/predictions.csv etc).
 # Safe because the excluded directories above are pruned before negation applies.
 !*.csv
+
+# Contact sheets from the label audit (52 MB). Regenerate with `python audit_sheets.py`.
+# Ignore the sheets but keep index.json, which carries the per-flag metrics for all 427.
+# `audit_sheets/*` rather than `audit_sheets/` so git still descends into the directory and
+# the negation below can re-include the one file.
+audit_sheets/*
+!audit_sheets/index.json
