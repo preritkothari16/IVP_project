@@ -85,7 +85,7 @@ Handled by capped inverse-frequency loss weights, not by resampling — see the 
 | label decontamination | 13 mislabelled `powdery_mildew_fruit` images quarantined | the model had been *taught* grey-brown fruit = powdery mildew |
 | backbone | `yolov5s-cls` (ImageNet-pretrained), 224 px | fits a 6 GB laptop GPU |
 | optimisation | Adam, `lr0=1e-3`, weight decay 5e-5, label smoothing 0.1, batch 32, 100 epochs | — |
-| inference | single forward pass; TTA implemented but **rejected** on measurement (−0.34pp macro-F1) | see the technique table |
+| inference | single forward pass; TTA implemented and measured but not shipped (metric-dependent: −0.0034 macro recall, +0.0064 macro F1) | see the technique table |
 
 There is **no segmentation step** and **no hand-crafted feature stage**: this is an end-to-end
 transfer-learned CNN. Segmented-mask/GLCM feature pipelines exist in the parent MATLAB project at
@@ -148,87 +148,117 @@ was and was not used for.
 >
 > The superseded BGR-based output is retained as `eval/ep28_BUGGY_DO_NOT_CITE/` for the record.
 
-### Current final result — label-cleaned retrain (2 October 2026)
+### Current final result — validation-selected checkpoint (2 October 2026)
+
+**Headline performance — macro-averaged F1: 0.8834.** This does **not** meet the 90% target.
+The previously reported 0.9064 was measured on a checkpoint that had been *selected using the
+test split*, and was therefore optimistic by **+0.0231 macro-F1**. See *Validation split* below.
 
 | metric | value |
 |---|---|
-| **Macro-averaged F1** | **0.9064** — meets the 90% target |
-| Macro-averaged recall (macro accuracy) | 0.8931 |
-| Macro-averaged precision | 0.9357 |
-| Weighted F1 | 0.9657 |
-| Overall top-1 (accuracy) | 0.9680 — 333 / 344 correct (11 errors) |
-| Majority-class baseline (accuracy) | 0.2558 — always predict `healthy` |
-| **Confident wrong answers (shown to user)** | **9** |
+| **Macro-averaged F1** | **0.8834** — **below** the 90% target |
+| Macro-averaged recall | 0.8773 |
+| Macro-averaged precision | 0.8915 |
+| Weighted F1 | 0.9578 |
+| Overall top-1 (accuracy) | 0.9593 — 330 / 344 correct (14 errors) |
+| Majority-class baseline | 0.2558 (always predict `healthy`) |
+| k-NN baseline, frozen backbone | 0.7313 macro-F1 (see *Baselines*) |
+| Confident wrong answers (shown to user) | 11 |
+| Errors caught by the low-confidence path | 3 |
 
-> ### The 90% target is met, under the standard metric
->
-> Earlier revisions of this README reported "macro accuracy 0.8931, 0.69pp **below** the 90%
-> target". That was wrong, and the error was in the *metric*, not the model.
->
-> `evaluate.py` originally reported accuracy only, and its pass/fail check tested
-> **macro-recall** (the macro average of per-class accuracy) against 0.90. Macro-recall is a
-> legitimate metric, but for a 9-class problem with support ranging from 8 to 88 it is **not** the
-> usual reading of "macro accuracy" — macro-**F1** is, because it weights precision and recall
-> together and therefore penalises a model that is confidently wrong.
->
-> `evaluate.py` now computes precision, recall and F1 per class, plus macro/weighted aggregates and
-> the majority-class baseline. On the shipped model:
->
-> | metric | value | 90% target |
-> |---|---|---|
-> | **macro-F1** | **0.9064** | **PASS** |
-> | macro-recall | 0.8931 | miss by 0.69pp |
-> | weighted F1 | 0.9657 | pass |
-> | majority-class baseline | 0.2558 | — |
->
-> The model clears the target on macro-F1 and weighted F1 and falls just short on macro-recall.
-> **Both numbers are reported here rather than only the flattering one**, because the gap between
-> them (1.3pp) is exactly the signature of the remaining weakness: high precision, lower recall on
-> the two small fruit classes, i.e. the model rarely mislabels the classes it knows, but it misses
-> some of the two classes it struggles with. Reporting macro-F1 alone would hide that.
-
-Shipped checkpoint: `yolov5/runs/train-cls/strawberry9clean/weights/best.pt`, copied to
-`backend/best.pt` (SHA-256 `333d9fcf…`). Evaluation: `eval/ep100clean/`. Verified by re-scoring
-all 344 TEST images through the live `/predict` endpoint: **344/344 identical top-1**.
+Shipped checkpoint: `yolov5/runs/train-cls/strawberry9val/weights/best.pt`, copied to
+`backend/best.pt` (SHA-256 `b4234f94…`). Evaluation: `eval/ep100clean_val/`. Verified by
+re-scoring all 344 TEST images through the live `/predict` endpoint: **344/344 identical top-1**.
 
 #### Per-class precision / recall / F1
 
 | class | test n | precision | recall | F1 |
 |---|---|---|---|---|
-| angular_leafspot | 30 | 1.0000 | 1.0000 | 1.0000 |
-| anthracnose_fruit_rot | 8 | 0.8000 | 0.5000 | 0.6154 |
-| blossom_blight | 11 | 0.9167 | 1.0000 | 0.9565 |
-| gray_mold | 40 | 0.8298 | 0.9750 | 0.8966 |
-| healthy | 88 | 1.0000 | 1.0000 | 1.0000 |
+| angular_leafspot | 30 | 1.0000 | 0.9667 | 0.9831 |
+| anthracnose_fruit_rot | 8 | 0.5714 | 0.5000 | **0.5333** |
+| blossom_blight | 11 | 1.0000 | 1.0000 | 1.0000 |
+| gray_mold | 40 | 0.8636 | 0.9500 | 0.9048 |
+| healthy | 88 | 0.9888 | 1.0000 | 0.9944 |
 | leaf_scorch | 60 | 1.0000 | 1.0000 | 1.0000 |
 | leaf_spot | 48 | 1.0000 | 0.9792 | 0.9895 |
-| powdery_mildew_fruit | 12 | 0.8750 | 0.5833 | 0.7000 |
+| powdery_mildew_fruit | 12 | 0.6000 | 0.5000 | **0.5455** |
 | powdery_mildew_leaf | 47 | 1.0000 | 1.0000 | 1.0000 |
-| **macro (unweighted)** | | **0.9357** | **0.8931** | **0.9064** |
-| **weighted** | | **0.9685** | **0.9680** | **0.9657** |
+| **macro (unweighted)** | | **0.8915** | **0.8773** | **0.8834** |
 
-**Five of nine classes are at F1 = 1.0000** (`angular_leafspot`, `healthy`, `leaf_scorch`,
-`leaf_spot`, `powdery_mildew_leaf`). The two weakest are `anthracnose_fruit_rot` (F1 0.6154) and
-`powdery_mildew_fruit` (F1 0.7000); both have **higher precision than recall**, meaning the model is
-rarely *wrong* about them but often fails to detect them — the safer of the two failure modes, and
-partly covered by the 0.6 display threshold.
+Three classes are at F1 = 1.0000. The macro average is held down by the two small fruit classes,
+`anthracnose_fruit_rot` (n=8) and `powdery_mildew_fruit` (n=12). Both have precision close to
+recall, so the model is neither confidently wrong nor merely absent on them — it is genuinely
+unable to resolve them. All 14 errors are fruit-rot-versus-fruit-rot:
 
-For the user-facing goal — never present a wrong answer as a diagnosis — the two models compare:
+```
+powdery_mildew_fruit -> gray_mold 5,  -> anthracnose_fruit_rot 1
+anthracnose_fruit_rot -> powdery_mildew_fruit 3,  -> gray_mold 1
+gray_mold -> anthracnose_fruit_rot 1
+angular_leafspot -> healthy 1,     leaf_spot -> blossom_blight 1
+leaf_scorch -> healthy 1
+```
 
-| | before label cleaning | **after (shipped)** |
-|---|---|---|
-| **confident wrong answers (shown to user)** | **11** | **9** |
-| **errors caught as low-confidence** | **1** | **2** |
-| macro top-1 | 0.8935 | 0.8931 |
-| overall top-1 | 0.9651 | **0.9680** |
-| **confident errors shown to user** | **11** | **9** |
-| errors caught by the low-confidence path | 1 | **2** |
-| `powdery_mildew_fruit` | 0.500 | **0.583** |
+#### Validation split — the earlier numbers were optimistic, and by how much
+
+`classify/train.py` resolves its validation loader as `data/test` when that directory exists
+(line 163), so **every checkpoint before this one was selected using the test split** and
+`data/val` (686 images) was never loaded. That has now been fixed, without modifying
+`classify/train.py`, by holding `dataset/test` out of the training tree entirely while training:
+
+```powershell
+# hold out test (line 163 then falls through to data/val)
+python -c "from pathlib import Path; import os; os.rename(Path('dataset/test'), Path('dataset/_test_holdout'))"
+cd yolov5
+python classify/train.py --model yolov5s-cls.pt --data ..\dataset --epochs 100 --img 224 `
+  --batch-size 32 --name strawberry9val --workers 2 --device 0 --exist-ok `
+  --class-weights --class-weight-max-ratio 4.0 --class-aug ..\class_aug.yaml
+# restore
+python -c "from pathlib import Path; import os; os.rename(Path('dataset/_test_holdout'), Path('dataset/test'))"
+```
+
+Proof the holdout worked: `runs/train-cls/strawberry9val/results.csv` has a **`val/loss`** column
+where the earlier runs have `test/loss`. The best checkpoint is epoch 67 at val top-1 0.9636.
+
+Two checkpoints from the *same* recipe, same seed, same data, differing **only** in which split
+chose the checkpoint:
+
+| metric | test-selected | **val-selected (shipped)** | epoch-100 `last.pt` |
+|---|---|---|---|
+| macro-F1 | 0.9064 | **0.8834** | 0.8875 |
+| macro recall | 0.8931 | **0.8773** | 0.8833 |
+| macro precision | 0.9357 | **0.8915** | 0.8971 |
+| weighted F1 | 0.9657 | **0.9578** | 0.9571 |
+| overall top-1 | 0.9680 | **0.9593** | 0.9593 |
+| clears 90% macro-F1 | yes | **no** | no |
+
+That **+0.0231 macro-F1 gap is a direct measurement of the optimism** that test-set selection
+introduced, and it is the number that should be believed rather than the higher one. The
+test-selected checkpoint is retained as `eval/ep100clean/` for the record and is *not* shipped.
+Reporting 0.9064 would have been reporting a number selected against the test set.
+
+#### Baselines
+
+| method | top-1 | macro-F1 | what it isolates |
+|---|---|---|---|
+| majority class (always `healthy`) | 0.2558 | 0.2558 | trivial floor |
+| k-NN, k=3, frozen YOLOv5s-cls features | 0.8372 | 0.7313 | value of fine-tuning |
+| **fine-tuned CNN (shipped)** | **0.9593** | **0.8834** | — |
+
+The k-NN baseline (`baseline_knn/`) uses the **same backbone and the same preprocessing** as the
+submitted model, replacing only the 9-way softmax head with a distance-weighted cosine k-NN vote
+over frozen penultimate features. So the +0.1521 macro-F1 gain is attributable to fine-tuning
+rather than to a different representation or input pipeline. **k was selected on `data/val` only**
+(k=3 won at val macro-F1 0.7896); `data/test` was never used to choose k. Every k tried is in
+`baseline_knn/k_sweep.csv`.
 
 #### Label contamination found in `powdery_mildew_fruit` TRAIN and fixed
 
-The dominant remaining failure was not a training or optimisation problem — **it was wrong labels
-in the training set.**
+This section documents an intermediate iteration. It is retained because the *finding* is a real
+result about the data, but note the numbers below are **not** the shipped model — see
+*Current final result* for those.
+
+The dominant failure was not a training or optimisation problem — **it was wrong labels in the
+training set.**
 
 Visual audit of all 81 `powdery_mildew_fruit` training images found a set that are not powdery
 mildew at all. `powdery_mildew_fruit_120.jpg` is a dried, brown, shrivelled mummy — textbook
@@ -241,9 +271,11 @@ mycelium**. Measuring every image against the `gray_mold` training distribution,
 (16%) of `powdery_mildew_fruit` training images fall inside the `gray_mold` interquartile range**
 (matte, grey-brown, low-contrast) — visually and numerically indistinguishable from grey mould.
 
-Those 13 were **quarantined, not deleted**, and the model retrained. The class went 50% → 58.3%
-accuracy and, more importantly, the model stopped being *taught* that grey-brown fruit is powdery
-mildew — which is exactly why it was confidently calling `gray_mold` on mildew berries at 0.92.
+Those 13 were **quarantined, not deleted**, and the model retrained. In that intermediate
+(test-selected) model the class went 50% → 58.3% accuracy. The improvement is smaller in the
+shipped, validation-selected model (`powdery_mildew_fruit` F1 0.5455), because the honest
+measurement removes the optimism — but the label fix itself stands, and it is why the model stopped
+being *taught* that grey-brown fruit is powdery mildew.
 
 Effect of the cleanup, per image: it **fixed** `powdery_mildew_fruit_101` (0.750), `_88` (0.705),
 `_47`, `gray_mold_263` and `angular_leafspot_220` (which also reached 1.0000), and **introduced**
@@ -268,15 +300,24 @@ misclassified in a way that shows on TEST.
 
 #### Everything else that was tried, and what it was worth
 
-Four techniques were implemented and measured independently:
+Five techniques were implemented and measured independently. Steps 0–3 were all measured against a
+**test-selected** checkpoint and their macro figures are therefore comparable *with each other* but
+sit ~0.023 above the honest level. Step 4 is the only one on a validation-selected checkpoint, and
+it is the shipped number:
 
-| # | technique | macro | vs. previous |
+| # | technique | macro recall | checkpoint selected on |
 |---|---|---|---|
-| 0 | corrected baseline (BGR bug fixed) | 0.8574 | — |
-| 1 | class-weighted CE (4:1 cap) + per-class augmentation | 0.8821 | **+0.0247** |
-| 1a | + test-time augmentation, 8 views | 0.8787 | **−0.0034 — rejected** |
-| 2 | + hard-example mining | 0.8935 | **+0.0114** |
-| 3 | + contaminated-label removal | 0.8931 | macro flat, **confident errors 11 → 9** |
+| 0 | corrected baseline (BGR bug fixed) | 0.8574 | test |
+| 1 | class-weighted CE (4:1 cap) + per-class augmentation | 0.8821 | test |
+| 1a | + test-time augmentation, 8 views | 0.8787 | test — **−0.0034, rejected** |
+| 2 | + hard-example mining | 0.8935 | test |
+| 3 | + contaminated-label removal | 0.8931 | test |
+| **4** | **+ validation-selected checkpoint (shipped)** | **0.8773** | **val — the honest number** |
+
+Steps 1–3 were genuine improvements on a like-for-like basis: step 1 is +0.0247 macro recall, step 2
++0.0114, step 3 neutral on macro but improved the safety metric. Step 4 is not an improvement in
+capability — it is the removal of an optimistic bias, and it costs 0.0158 macro recall relative to
+step 3 while making the number defensible.
 
 **1. Class-weighted loss + per-class augmentation (+2.47pp).** `CrossEntropyLoss(weight=…)` with
 weights linear in inverse class frequency, capped so the smallest class gets at most a 4:1 boost,
@@ -290,9 +331,17 @@ errors are discriminative rather than scale-related; `angular_leafspot` got gray
 **removed entirely** (both destroy the lesion colour and texture cues that separate it from
 `leaf_scorch`).
 
-**1a. Test-time augmentation — implemented, measured, and rejected (−0.34pp).** `evaluate.py
---tta 8` averages 8 deterministic views. It fixed 2 images and **broke 4**. Not shipped; the code
-and its evidence (`eval/ep100hard_tta8/`) are retained for reference.
+**1a. Test-time augmentation — implemented, measured, NOT shipped; effect is metric-dependent.**
+`evaluate.py --tta 8` averages 8 deterministic views (centre crops at 1.0/0.85/0.7/0.55 ×
+identity/hflip). On macro **recall** it is −0.0034 (0.8821 → 0.8787) and it fixed 2 images while
+breaking 4. On macro **F1** it is **+0.0064** (0.8912 → 0.8976). Both are reproduced in
+`eval/ep100w/` and `eval/ep100w_tta8/`.
+
+Not shipped because it multiplies inference cost by 8 for a gain smaller than the noise on the
+n=8 and n=12 classes, and because it lengthens already-confident top-2/top-3 gaps rather than
+fixing a genuine error. Note this is a **judgement call, not a clean rejection** — an earlier
+revision of this document described TTA as clearly harmful, which holds for macro recall but not
+for macro-F1.
 
 **2. Hard-example mining (+1.14pp).** For each weak class, 6 TRAIN images were selected whose
 measured signature matched that class's *known test failures*, and 4 physically-augmented variants
@@ -320,20 +369,36 @@ no remaining mislabelled cross-class pairs.
 
 #### Full per-class comparison
 
-| class | test n | baseline | Step 1 (weighted+aug) | +TTA8 | +hard mining | **+label cleanup** |
-|---|---|---|---|---|---|---|
-| angular_leafspot | 30 | 0.8667 | **1.0000** | 0.9333 | 0.9667 | **1.0000** |
-| anthracnose_fruit_rot | 8 | 0.6250 | 0.5000 | 0.5000 | 0.6250 | 0.5000 |
-| blossom_blight | 11 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
-| gray_mold | 40 | 0.9750 | 0.9500 | 0.9750 | 0.9500 | **0.9750** |
-| healthy | 88 | 1.0000 | 0.9886 | 1.0000 | 1.0000 | 1.0000 |
-| leaf_scorch | 60 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
-| leaf_spot | 48 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 0.9792 |
-| powdery_mildew_fruit | 12 | 0.2500 | 0.5000 | 0.5000 | 0.5000 | **0.5833** |
-| powdery_mildew_leaf | 47 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
-| **MACRO** | | **0.8574** | **0.8821** | **0.8787** | **0.8935** | **0.8931** |
-| **TOP-1** | | **0.9506** | **0.9622** | **0.9622** | **0.9651** | **0.9680** |
-| **confident errors** | | | | | **11** | **9** |
+Recall per class. Columns 1–5 are test-selected checkpoints, so they are comparable with each
+other but ~0.02 optimistic in absolute terms; the final column is the shipped,
+validation-selected model and is the only honest column:
+
+| class | test n | baseline | Step 1 (weighted+aug) | +TTA8 | +hard mining | +label cleanup | **shipped (val-sel)** |
+|---|---|---|---|---|---|---|---|
+| angular_leafspot | 30 | 0.8667 | 1.0000 | 0.9333 | 0.9667 | 1.0000 | **0.9667** |
+| anthracnose_fruit_rot | 8 | 0.6250 | 0.5000 | 0.5000 | 0.6250 | 0.5000 | **0.5000** |
+| blossom_blight | 11 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | **1.0000** |
+| gray_mold | 40 | 0.9750 | 0.9500 | 0.9750 | 0.9500 | 0.9750 | **0.9500** |
+| healthy | 88 | 1.0000 | 0.9886 | 1.0000 | 1.0000 | 1.0000 | **1.0000** |
+| leaf_scorch | 60 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | **0.9833** |
+| leaf_spot | 48 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 0.9792 | **0.9792** |
+| powdery_mildew_fruit | 12 | 0.2500 | 0.5000 | 0.5000 | 0.5000 | 0.5833 | **0.5000** |
+| powdery_mildew_leaf | 47 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | **1.0000** |
+| **macro recall** | | **0.8574** | **0.8821** | **0.8787** | **0.8935** | **0.8931** | **0.8773** |
+| **top-1** | | **0.9506** | **0.9622** | **0.9622** | **0.9651** | **0.9680** | **0.9593** |
+| **macro F1** | | 0.8647 | 0.8912 | **0.8976** | 0.9008 | 0.9064 | **0.8834** |
+| **confident errors** | | | | | 11 | 9 | **11** |
+
+**One correction to this table.** Earlier revisions rejected TTA on the strength of a −0.0034
+*macro recall*. On macro-F1 the same comparison runs the other way — **0.8976 with TTA vs 0.8912
+without, i.e. +0.0064** — so on the metric this project reports as its headline, TTA would have
+helped. The two readings disagree because TTA fixes confident errors while occasionally dropping
+correct ones below threshold: it lowered the low-confident-error count but raised macro recall.
+
+TTA is still not shipped, on the grounds that (a) it is a 2–4× inference cost for a gain smaller
+than the noise on n=8 and n=12 classes, and (b) it lengthens the already-large top-2/top-3 gaps
+rather than fixing a real error. But the honest statement is that **TTA was not clearly harmful** —
+it is a judgement call, not a measured rejection, and the code remains behind `evaluate.py --tta`.
 
 Low-confidence rate (fraction of that class's own test images below the 0.6 threshold):
 
@@ -361,19 +426,19 @@ simultaneously — which is exactly the confusion this project has already docum
 
 #### Why the remaining gap is a data ceiling, not a fixable training defect
 
-The macro-F1 is **90.64%**, which **meets** the 90% target; macro-recall is **89.31%**, which
-misses it by 0.69pp. Both are reported above and both are in `eval/ep100clean/eval.json` under
-`target.passed` / `target.macro_f1` / `target.macro_recall`, so the pass is checkable rather than
-asserted. The remaining 11 errors are all fruit-rot versus fruit-rot:
+Macro-F1 is **88.34%**, which is **1.66pp below** the 90% target. The pass/fail decision is recorded
+machine-readably in `eval/ep100clean_val/eval.json` under
+`target.passed` / `target.macro_f1` / `target.macro_recall` (`target.passed: false`). The remaining
+14 errors are all fruit-rot versus fruit-rot, plus three incidental ones:
 
 ```
-powdery_mildew_fruit -> gray_mold 4,  -> (none other)
-anthracnose_fruit_rot -> gray_mold 3, -> powdery_mildew_fruit 1
+powdery_mildew_fruit -> gray_mold 5,  -> anthracnose_fruit_rot 1
+anthracnose_fruit_rot -> powdery_mildew_fruit 3,  -> gray_mold 1
 gray_mold -> anthracnose_fruit_rot 1
-leaf_spot -> blossom_blight 1     (below threshold, not displayed)
+angular_leafspot -> healthy 1,   leaf_spot -> blossom_blight 1,   leaf_scorch -> healthy 1
 ```
 
-`powdery_mildew_fruit` is 0.5833 (7/12) and `anthracnose_fruit_rot` is 0.5000 (4/8). Both classes
+`powdery_mildew_fruit` is recall 0.5000 (6/12) and `anthracnose_fruit_rot` recall 0.5000 (4/8). Both classes
 are genuinely small — 68 and 58 real training images after cleanup — and `union_dataset` contains
 no further strawberry material for either (verified above). The classes are *adjacent fungi*:
 a powdery-mildew berry can be secondarily colonised by *Botrytis*, so for some photos the dataset
@@ -476,31 +541,38 @@ fully separated from the background signal. This is a known open issue, not a re
 `angular_leafspot` (0% PlantVillage) versus `leaf_scorch` (100% PlantVillage) is the sharpest
 worked example, and it is also the class the retrain improved most.
 
-Shipped model: `eval/ep100clean/confusion_matrix.png`, `eval/ep100clean/eval.json`,
-`eval/ep100clean/predictions.csv`.
+Shipped model: `eval/ep100clean_val/confusion_matrix.png`, `eval/ep100clean_val/eval.json`,
+`eval/ep100clean_val/predictions.csv`.
 Corrected baseline (pre-retrain): `eval/ep28_corrected/`.
 
-### Checkpoint selection caveat — TEST was not a fully held-out split
+### Checkpoint selection — RESOLVED, and the cost of the fix was measured
 
-Two things about how `best.pt` was chosen, which bear on how much the number above is worth:
+**This caveat applied to every checkpoint up to and including `strawberry9clean`, and no longer
+applies to the shipped model.**
 
-- **Training-time validation ran on TEST, not on `val`.** `classify/train.py` resolves its second
-  loader as `data/test` when that directory exists (line 129), and `data/test` does exist here, so
-  `data/val` was never loaded by the training script at all. `best.pt` was selected by best
-  accuracy on that loader (`classify/train.py:249`, `fitness = top1`; saved at line 286) — i.e. on
-  the 344-image TEST split.
-- **`data/val` (686 images) exists but was never used.** It is not in any metric reported here.
+The problem: `classify/train.py` resolves its validation loader as `data/test` when that directory
+exists (line 163), and `data/test` did exist, so `data/val` was never loaded and `best.pt` was
+selected on the test split. Reported test performance was therefore a test-selected estimate.
 
-So the reported TEST accuracy is **not classic held-out performance**: the checkpoint was chosen
-partly against this split. This inflates it to an unknown degree and the size of that inflation
-cannot be measured from the current artifacts.
+The fix, described in full under *Validation split* above: hold `dataset/test` out of the training
+tree for the duration of training, so line 163 falls through to `data/val`. The shipped
+`strawberry9val` checkpoint was selected on **val** top-1 (best at epoch 67 of 100), and TEST was
+loaded only once, for the final evaluation.
 
-What is *not* in question: no **training** images leaked into TEST. TEST is independent of the
-2,389 training images, so the figure is a genuine out-of-sample number for the model — just one
-selected with knowledge of it. Treat **0.8931 / 0.9680** as a slightly optimistic estimate, not a
-lower bound. This caveat applies equally to the retrained model — `best.pt` for
-`strawberry9hard` was also selected on TEST top-1 (best at epoch 98 of 100), so the same inflation
-applies and its magnitude is likewise unmeasured.
+**The fix cost 0.0231 macro-F1 and 0.0087 top-1**, measured by training the identical recipe twice
+and changing only which split chose the checkpoint:
+
+| | test-selected | val-selected (shipped) |
+|---|---|---|
+| macro-F1 | 0.9064 | **0.8834** |
+| overall top-1 | 0.9680 | **0.9593** |
+
+So the earlier 0.9064 should be read as *0.8834 plus roughly 0.023 of optimism*, not as an unbiased
+estimate. What remains a genuine limitation: **no test set exists that has never influenced any
+decision.** Even the shipped model's recipe (class weighting cap, per-class augmentation, hard-example
+mining, label decontamination) was developed while looking at test-set results, so some optimism
+remains and cannot be quantified without a fresh, never-touched test set. That would require new
+strawberry imagery.
 
 ### The errors are concentrated in the powdery-mildew / Botrytis fruit complex
 
@@ -606,15 +678,26 @@ Notes:
   validation number driving that decision was measured on BGR input. On **corrected** evaluation it
   reaches 0.8574 macro / 0.9506 top-1.
 - The **shipped** `best.pt` is from a full **100-epoch** run with class weighting, per-class
-  augmentation, hard-example mining, and decontaminated `powdery_mildew_fruit` labels
-  (`--name strawberry9clean`): **0.8931 macro / 0.9680 top-1**. Reproduce with:
+  augmentation, hard-example mining and decontaminated `powdery_mildew_fruit` labels, trained with
+  **`data/test` held out of the tree** so the checkpoint was selected on `data/val`
+  (`--name strawberry9val`): **0.8834 macro-F1 / 0.9593 top-1**. Reproduce with:
 
   ```powershell
-  cd D:\ivp\plant_ai\yolov5
+  cd D:\ivp\plant_ai
+  # hold out test so classify/train.py's loader falls through to data/val
+  python -c "from pathlib import Path; import os; os.rename(Path('dataset/test'), Path('dataset/_test_holdout'))"
+
+  cd yolov5
   python classify/train.py --model yolov5s-cls.pt --data ..\dataset --epochs 100 --img 224 `
-    --batch-size 32 --name strawberry9clean --workers 4 --device 0 --exist-ok `
+    --batch-size 32 --name strawberry9val --workers 2 --device 0 --exist-ok `
     --class-weights --class-weight-max-ratio 4.0 --class-aug ..\class_aug.yaml
+
+  cd ..
+  python -c "from pathlib import Path; import os; os.rename(Path('dataset/_test_holdout'), Path('dataset/test'))"
   ```
+
+  Verify the holdout took effect by checking that `runs/train-cls/strawberry9val/results.csv`
+  has a **`val/loss`** column rather than `test/loss`.
 
 ---
 
@@ -728,10 +811,14 @@ plant_ai/
   dataset/                   3419 images, 70/20/10, + manifest.csv
   binary_dataset/            strawberry-vs-not filter dataset
   healthy_clean/             filter scores, keep/drop/uncertain, review sheets
-  eval/ep100clean/           CITED: shipped model - confusion matrix, metrics, predictions
+  eval/ep100clean_val/      CITED: shipped model (val-selected ckpt) - metrics, predictions
+  eval/ep100val_last/       epoch-100 checkpoint, no selection at all (comparison)
+  eval/ep100clean/           superseded TEST-selected checkpoint - shows the +0.0231 inflation
   eval/ep100hard/            pre-decontamination run (comparison only)
   eval/ep28_corrected/       corrected baseline (pre-retrain), for before/after comparison
   eval/ep100hard_tta8/       the rejected TTA variant (evidence)
+  baseline_knn/              k-NN baseline: k_sweep.csv, knn_k3_{val,test}/eval.json
+  baseline_knn/features/     cached features (gitignored; regenerate with baseline_knn.py)
   eval/ep28_BUGGY_DO_NOT_CITE/
                             superseded BGR-channel-order output, historical only
   screenshots/               Phase 5 UI evidence
@@ -756,7 +843,73 @@ plant_ai/
   stage_demo_images.py       curate demo_images/ from the evaluation output
 ```
 
----
+## Dataset citation
+
+**PARTIALLY RECOVERED — the upstream sources are recorded in the corpus itself; the licence and the
+assembler's identity are not.**
+
+The evidence is inside `union_dataset/`, not this README:
+
+- `union_dataset/README.txt` (written in Russian) names the source datasets and states the intent.
+  Translated: *"This dataset was assembled from several datasets, some of which were in open-source
+  format on Kaggle. Links are provided below… More than 70 classes in total. Some of them are
+  incomplete, however some do not relate to strawberries at all. Goal — to create a dataset
+  tailored exclusively to strawberry diseases."*
+- `union_dataset/unified_strawberry_dataset.csv` carries a `dataset_link` column with a Kaggle URL
+  for **every one of 9,190 images**, plus an `is_strawberry_disease` flag.
+
+Upstream sources, exactly as recorded:
+
+| key in corpus | Kaggle URL |
+|---|---|
+| `classification-mk1` | <https://www.kaggle.com/datasets/nizier193/classification-mk1> |
+| `plant-disease` | <https://www.kaggle.com/datasets/saroz014/plant-disease> |
+| `doctorp` | <https://www.kaggle.com/datasets/alexanderuzhinskiy/the-doctorp-project-dataset> |
+| `tipburn` | <https://www.kaggle.com/datasets/ercanavsar/images-of-strawberry-leaves-for-tipburn-detection> |
+
+Per-class provenance of the 9 classes actually used (from the `dataset_link` column):
+
+| class | source | images |
+|---|---|---|
+| angular_leafspot, anthracnose_fruit_rot, blossom_blight, gray_mold, powdery_mildew_fruit, powdery_mildew_leaf | `classification-mk1` | 123–400 each |
+| leaf_spot | `classification-mk1` + `doctorp` | 544 + 52 |
+| healthy | `tipburn` + `plant-disease` + `doctorp` | 626 + 456 + 191 |
+| **leaf_scorch** | **not present in the corpus CSV** | **source unrecorded** |
+
+> #### ⚠️ MANUAL ACTION REQUIRED — three gaps a reader must be given
+>
+> 1. **Licence.** No licence is stated anywhere in `union_dataset/` for any of the four upstream
+>    datasets, nor for the composite. **Not determinable from this repository.** Each Kaggle
+>    dataset's licence must be checked on its own page and recorded here. Until then, redistribution
+>    rights for the derived `dataset/` are unknown.
+> 2. **Composite title and author.** The corpus has no formal title or credited author. The four
+>    owners above are the *upstream* authors, not the assembler of this composite.
+> 3. **`leaf_scorch` provenance.** Its 1,109 source images live in `union_dataset/Strawberry___Leaf_scorch/`,
+>    which does **not** appear in `unified_strawberry_dataset.csv`. It was added outside the unified
+>    mapping and its origin is unrecorded. This class is 60 of the 344 test images (17.5%).
+
+#### Contamination the source corpus itself flags
+
+The corpus's `is_strawberry_disease` column marks some images `False`. Audit of how many of those
+reached `dataset/`:
+
+| class | flagged in corpus | reached `dataset/` | outcome |
+|---|---|---|---|
+| `healthy` | 191 | **0** | all rejected by the binary strawberry-vs-not filter |
+| `leaf_spot` | 52 | **51** | **still present** (30 train / 12 val / 9 test) |
+
+The 51 surviving `leaf_spot` images were re-scored with that same binary filter: median
+`p_strawberry` **0.3596**, versus **0.9501** for unflagged controls, and only 5 of 51 clear the 0.85
+keep threshold. Visual inspection confirms the flag: they are ornamental shrubs and palmate-compound
+leaves (potato/*Rubus*-type), not *Fragaria*, while the unflagged controls are unmistakably trifoliate
+strawberry leaves with purple lesions.
+
+Impact on reported performance is small — excluding the 9 from TEST moves macro-F1 from 0.9064 to
+0.9062 — but the **interpretation** changes. The model labels all 9 as `leaf_spot` at ~0.87 mean
+confidence. They are *accidentally correct* out-of-distribution predictions, not evidence of
+leaf-spot recognition, and they constitute 9 of `leaf_spot`'s 48 test images. They were left in place
+because removing them would change the frozen TEST split and invalidate every before/after
+comparison in this document; they are flagged here instead.
 
 ## References
 
@@ -764,20 +917,34 @@ plant_ai/
   <https://github.com/ultralytics/yolov5> — the repository cloned into `yolov5/`, from which
   `yolov5s-cls.pt` is downloaded. Licensed **AGPL-3.0** (see `yolov5/LICENSE`); four files in that
   clone are locally patched, all documented in section 1.
-- The image corpus is a **Kaggle-sourced union dataset**. Per-image provenance is limited to a
-  `PlantVillage` / other-source flag in `dataset/manifest.csv`. **The exact upstream dataset
-  citation (title, authors, URL, licence) is not recorded anywhere in this repository**, so no
-  citation is asserted here. This is a genuine documentation gap in the source material and should
-  be filled in by whoever assembled `union_dataset/`.
-- Taxonomy references used in `backend/disease_info.json` (*Botrytis cinerea* for grey mould and
-  blossom blight, *Podosphaera aphanis* for powdery mildew) are common-knowledge plant-pathology
-  facts, not sourced citations. **Every entry in `disease_info.json` is marked
-  `"verified": false`** — the content has not been reviewed by an agronomist or plant pathologist.
-  See *What is NOT verified*.
+- Four upstream Kaggle datasets, as recorded in `union_dataset/README.txt` and the
+  `dataset_link` column of `union_dataset/unified_strawberry_dataset.csv`. URLs are in
+  *Dataset citation* above; **their licences are not recorded in this repository** and must be
+  checked at source.
+- Taxonomy used in `backend/disease_info.json` (*Botrytis cinerea* for grey mould and blossom
+  blight; *Podosphaera aphanis* for powdery mildew) is common-knowledge plant pathology, **not a
+  sourced citation**. Every entry in that file is `"verified": false` — see
+  *What is NOT verified*.
 
 ---
 
-## What is NOT verified
+## Disease information is AI-generated and unverified
+
+`backend/disease_info.json` supplies every symptom, cause, treatment and prevention string in the
+app. **None of it has been reviewed by an agronomist or plant pathologist.** Every one of the nine
+entries carries `"verified": false` in the file itself, and the app states it in two visible places
+on every result card:
+
+> "Disease information is AI-assisted and unverified — not yet reviewed by an agronomist."
+
+and in the page footer: *"Results are AI-assisted and are **not** a substitute for an agronomist or
+plant-pathology diagnosis."*
+
+This is a deliberate disclosure, not a caveat buried in a footer: the treatment text is the part of
+this project most likely to be acted on, so its provenance is stated at the point of use. Nothing in
+the UI describes the model as expert-validated, and no entry was flipped to `verified: true`.
+
+---
 
 - **`disease_info.json` — all 9 entries are marked `"verified": false`.** They were written from
   general plant-pathology knowledge and have **not** been reviewed by an agronomist or
@@ -802,20 +969,33 @@ plant_ai/
   `anthracnose_fruit_rot` 1). Do not present this model as reliable on berry rot identification;
   the 7-of-9-classes-perfect headline hides this. Raising these requires more strawberry fruit-rot
   imagery, not more training.
-- **The 90% target is met on macro-F1 (0.9064) and weighted F1 (0.9657), and missed on
-  macro-recall (0.8931, short by 0.69pp).** The metric was ambiguous in the project brief, so all
-  three are reported. The originally published 0.9638 macro met the target but came from a
-  channel-order bug (see the correction note at the top) and has been withdrawn; the honest figure
-  after fixing that bug was 0.8574 macro-recall / 0.8647 macro-F1.
-- **There is no separate validation set in practice.** `data/val` (686 images) exists and is
-  correctly disjoint from train, but `classify/train.py` resolves its validation loader to
-  `data/test`, so the shipped `best.pt` was selected on TEST top-1 and `data/val` was never loaded.
-  Every number here is therefore a *test-selected* estimate and slightly optimistic. This affects
-  the headline claim, so it is stated plainly rather than buried.
+- **The 90% macro-F1 target is not met: 0.8834, short by 1.66pp.** Reported macro recall 0.8773,
+  macro precision 0.8915, weighted F1 0.9578, top-1 0.9593. The metric was ambiguous in the project
+  brief, so macro-F1 is used as the headline and macro recall is reported beside it rather than
+  the flattering figure alone. The originally published 0.9638 macro did meet the target, but came
+  from a channel-order bug (see the correction note at the top) and has been withdrawn; fixing it
+  gave 0.8574 macro recall / 0.8647 macro-F1, and the subsequent work on class weighting,
+  per-class augmentation, hard-example mining and label decontamination brings it to 0.8834.
+- **No test set exists that has never influenced any decision.** `data/val` (686 images) is now
+  used for checkpoint selection — the shipped `best.pt` was chosen on val top-1 — so the reported
+  test numbers are no longer *checkpoint-selected*. However, the training recipe itself (weighting
+  cap, per-class augmentation, hard-example mining, label decontamination) was developed while
+  looking at test-set results, so some optimism remains and its size cannot be measured without a
+  fresh test set. The measured cost of checkpoint selection alone was 0.0231 macro-F1.
+- **The upstream dataset licence is unknown.** Four Kaggle sources are identified in
+  `union_dataset/README.txt` and `unified_strawberry_dataset.csv`, but no licence is recorded for any
+  of them, and `leaf_scorch` (17.5% of the test split) has no recorded provenance at all. See
+  *Dataset citation*.
+- **51 `leaf_spot` images flagged `is_strawberry_disease=False` by the source corpus remain in the
+  dataset** (30 train / 12 val / **9 test**). Re-scored with the project's own binary filter they
+  have median `p_strawberry` 0.3596 versus 0.9501 for unflagged controls, and inspection confirms
+  they are ornamental and potato/*Rubus*-type foliage, not *Fragaria*. Impact on macro-F1 is
+  −0.0003, but they are *accidentally correct* out-of-distribution predictions and should not be
+  read as evidence of leaf-spot recognition. See *Dataset citation*.
 - **The training labels were themselves found to be wrong.** 13 of 81 `powdery_mildew_fruit`
   training images (16%) were grey-mould lesions misfiled under powdery mildew, including a dried
-  brown mummy. They were quarantined and the model retrained; confident errors dropped 11 → 9 and
-  that class went 50% → 58%. This is why `dataset/manifest.csv` and the quarantine list matter:
+  brown mummy. They were quarantined and the model retrained. This is why `dataset/manifest.csv`
+  and the quarantine list matter:
   **the class list is not a guarantee that labels inside it are correct**, and the remaining
   `powdery_mildew_fruit` / `anthracnose_fruit_rot` errors are likely more of the same ambiguity.
 - **The healthy cap was deliberately left in place.** `healthy` has 214 unused train images, but

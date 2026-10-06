@@ -1,13 +1,13 @@
 {
-  "weights": "yolov5\\runs\\train-cls\\strawberry9hard\\weights\\best.pt",
-  "tag": "ep100hard",
+  "weights": "D:\\ivp\\plant_ai\\yolov5\\runs\\train-cls\\strawberry9val\\weights\\best.pt",
+  "tag": "ep100clean_val",
   "n_test": 344,
-  "overall_top1": 0.9651162790697675,
-  "macro_top1": 0.8935185185185186,
-  "macro_precision": 0.9141556009533538,
-  "macro_recall": 0.8935185185185186,
-  "macro_f1": 0.9007958927450453,
-  "weighted_f1": 0.9633279839330293,
+  "overall_top1": 0.9593023255813954,
+  "macro_top1": 0.8773148148148149,
+  "macro_precision": 0.8915365533343061,
+  "macro_recall": 0.8773148148148149,
+  "macro_f1": 0.8833805108559791,
+  "weighted_f1": 0.9578246643232224,
   "majority_class_baseline": {
     "class": "healthy",
     "accuracy": 0.2558139534883721,
@@ -16,9 +16,9 @@
   "target": {
     "value": 0.9,
     "metric": "macro_f1",
-    "passed": true,
-    "macro_f1": 0.9007958927450453,
-    "macro_recall": 0.8935185185185186
+    "passed": false,
+    "macro_f1": 0.8833805108559791,
+    "macro_recall": 0.8773148148148149
   },
   "per_class": [
     {
@@ -33,11 +33,11 @@
     {
       "class": "anthracnose_fruit_rot",
       "support": 8,
-      "accuracy": 0.625,
-      "precision": 0.625,
-      "recall": 0.625,
-      "f1": 0.625,
-      "predicted": 8
+      "accuracy": 0.5,
+      "precision": 0.5714285714285714,
+      "recall": 0.5,
+      "f1": 0.5333333333333333,
+      "predicted": 7
     },
     {
       "class": "blossom_blight",
@@ -78,20 +78,20 @@
     {
       "class": "leaf_spot",
       "support": 48,
-      "accuracy": 1.0,
+      "accuracy": 0.9791666666666666,
       "precision": 1.0,
-      "recall": 1.0,
-      "f1": 1.0,
-      "predicted": 48
+      "recall": 0.9791666666666666,
+      "f1": 0.9894736842105264,
+      "predicted": 47
     },
     {
       "class": "powdery_mildew_fruit",
       "support": 12,
       "accuracy": 0.5,
-      "precision": 0.75,
+      "precision": 0.6,
       "recall": 0.5,
-      "f1": 0.6,
-      "predicted": 8
+      "f1": 0.5454545454545454,
+      "predicted": 10
     },
     {
       "class": "powdery_mildew_leaf",
@@ -113,8 +113,8 @@
     {
       "true": "anthracnose_fruit_rot",
       "pred": "powdery_mildew_fruit",
-      "count": 2,
-      "share_of_true": 0.25
+      "count": 3,
+      "share_of_true": 0.375
     },
     {
       "true": "gray_mold",
@@ -135,6 +135,12 @@
       "share_of_true": 0.125
     },
     {
+      "true": "leaf_spot",
+      "pred": "powdery_mildew_fruit",
+      "count": 1,
+      "share_of_true": 0.020833333333333332
+    },
+    {
       "true": "powdery_mildew_fruit",
       "pred": "anthracnose_fruit_rot",
       "count": 1,
@@ -148,10 +154,10 @@
     },
     "other": {
       "n": 234,
-      "accuracy": 0.9487179487179487
+      "accuracy": 0.9401709401709402
     }
   },
-  "pv_other_gap": 0.05128205128205132,
+  "pv_other_gap": 0.05982905982905984,
   "classes_with_both_sources": [
     {
       "class": "healthy",

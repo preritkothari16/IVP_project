@@ -44,10 +44,11 @@ RUNS_DIR = YOLOV5_DIR / "runs"
 FILTER_WEIGHTS = RUNS_DIR / "train-cls" / "filter" / "weights" / "best.pt"
 STRAWBERRY9_WEIGHTS = RUNS_DIR / "train-cls" / "strawberry9" / "weights" / "best.pt"
 
-# The shipped checkpoint: label-cleaned retrain.
-SHIPPED_RUN = "strawberry9clean"
+# The shipped checkpoint: retrained with data/test held out of the training tree, so the
+# checkpoint was selected on data/val. See README "Validation split".
+SHIPPED_RUN = "strawberry9val"
 SHIPPED_WEIGHTS = RUNS_DIR / "train-cls" / SHIPPED_RUN / "weights" / "best.pt"
-SHIPPED_EVAL_TAG = "ep100clean"
+SHIPPED_EVAL_TAG = "ep100clean_val"
 
 # Source corpus, outside the project. Defaults to a sibling of the project directory.
 SOURCE_DATASET = Path(

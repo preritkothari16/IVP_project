@@ -19,7 +19,7 @@ def load(tag):
     return cm, d
 
 
-for tag in ("ep100clean", "ep100hard", "ep28_corrected"):
+for tag in ("ep100clean", "ep100clean_val", "ep100hard", "ep28_corrected"):
     cm, d = load(tag)
     classes = [p["class"] for p in d["per_class"]]
     support = cm.sum(axis=1)
