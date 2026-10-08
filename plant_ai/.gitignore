@@ -36,3 +36,7 @@ __pycache__/
 # the negation below can re-include the one file.
 audit_sheets/*
 !audit_sheets/index.json
+
+# Leak-free re-split tree: 3,450 hardlinks to dataset/, ~0 disk. Rebuild with
+# resplit_build.py + resplit_materialise.py; resplit_verify.py must print PASS.
+dataset_v2/

@@ -597,6 +597,75 @@ low-confidence path fires on 1 of these 12 images.
 
 ---
 
+### Near-duplicate leakage: measured, and it turns out to be negligible
+
+The TEST split was assigned at image level, so near-identical frames of the same plant or berry
+could land on both sides of the boundary. Rather than assume that mattered, it was measured.
+
+Clustering all 3,406 real images by dHash (exact pairwise Hamming distance, union-find over
+transitive links) shows the current split is not as leaky as feared, but not clean either:
+
+| dHash threshold | near-dup pairs | clusters straddling a split | images in them |
+|---|---|---|---|
+| ≤ 6 | 36 | 17 | 37 |
+| **≤ 10** | **319** | **108** | **318** |
+| ≤ 14 | 2,762 | 115 | 1,355 — collapses into one 985-image mega-cluster |
+
+Threshold 10 is used: the largest cluster there is 8 images, which is plausible for burst shots
+of one plant. At 14 transitive chaining collapses everything into a single component and the
+metric stops meaning anything, so 14 and above are discarded rather than tuned.
+
+**45 of the 344 TEST images (13.1%) have a perceptual near-duplicate in TRAIN.** A leak-free
+group-aware re-split was then built (`dataset_v2/`, hardlinked, `dataset/` left untouched):
+
+* split ratio 69.9 / 20.1 / 10.0, per-class counts within ±1–2 images of the original
+* **0** clusters straddle a split boundary
+* 297 of the 342 new TEST images are free of any near-duplicate in the training set
+* val/test contain real images only; 24 hard-mined augmented variants were dropped because their
+  parent moved to val/test and keeping them would have leaked
+
+The re-split **was not used to retrain.** Instead the shipped checkpoint was scored on the 102 new
+TEST images it had never seen and that have no near-duplicate in its training set. That measures
+the leakage effect directly, for the price of one inference pass:
+
+| metric | old TEST (n=344, 13.1% leaky) | leak-free subset (n=102, 0% leaky) |
+|---|---|---|
+| top-1 | 0.9593 | 0.9608 |
+| macro recall | 0.8773 | 0.8955 |
+| macro-F1 | 0.8834 | 0.8941 |
+| macro precision | 0.8915 | 0.9031 |
+| weighted F1 | 0.9578 | 0.9622 |
+| errors | 14 | 4 |
+| confident wrong (≥ 0.60) | 11 | 2 |
+| confident-wrong rate | 3.2% | 2.0% |
+
+**The leakage did not inflate the reported numbers.** On genuinely leak-free data the model scores
+the same or marginally better, and 3 of its 4 remaining errors are the *same* confusion pairs as on
+the old TEST set (`gray_mold→anthracnose`, `powdery_mildew_fruit→gray_mold`,
+`powdery_mildew_fruit→anthracnose`). So the headline figures stand as reported.
+
+Caveat, stated plainly: n=102 is small and `blossom_blight` has no clean images, so the macro
+figures there are computed over 8 classes and the comparison is indicative rather than conclusive.
+What it does establish is that there is no large hidden inflation to correct for, which is why a
+retrain on `dataset_v2` was skipped rather than run.
+
+`dataset_v2/` is kept as a forward guard for any future work — it is hardlinked, so it costs
+essentially no disk — but the shipped model and all headline metrics still come from
+`dataset/` and `strawberry9val`.
+
+| path | contents |
+|---|---|
+| `resplit_measure.py` | exact pairwise dHash clustering at several thresholds |
+| `resplit_build.py` | stratified group-aware allocation |
+| `resplit_materialise.py` | hardlinks `dataset_v2/`, drops leaky augmented variants |
+| `resplit_verify.py` | 3 pre-flight checks, must print `PASS` before training |
+| `resplit_overlap.py` | migration matrix, how independent the new TEST set is |
+| `resplit_leakage.py` | contamination analysis + `test_clean/` subset |
+| `eval_on.py` | runs `evaluate.py` against an alternative dataset root |
+| `resplit_clusters.json`, `resplit_assign.json`, `leakage_report.json` | intermediate results |
+
+---
+
 ## 1. Environment setup (Windows)
 
 ```powershell
