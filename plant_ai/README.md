@@ -865,22 +865,45 @@ Licences below were read from the **Kaggle datasets API**
 
 | key in corpus | title | licence | status |
 |---|---|---|---|
-| `classification-mk1` | *unknown* | **unknown** | **⚠ URL 404 — dataset no longer exists** |
+| `classification-mk1` | Strawberry Disease Classification Dataset | **Unknown** | live, **renamed** — see below |
 | `plant-disease` | Plant Disease | **GPL 2** | live |
 | `doctorp` | The DoctorP dataset (plant disease classification) | **CC BY-NC-SA 4.0** | live |
 | `tipburn` | Images of Strawberry Leaves for Tipburn Detection | **CC BY-NC 4.0** | live |
 
-> #### ⚠️ Two licensing problems, both material
+> #### ⚠️ The `classification-mk1` licence is declared **"Unknown"** — resolved, and it is negative
 >
-> 1. **`classification-mk1` has been removed from Kaggle** (`https://www.kaggle.com/datasets/
->    nizier193/classification-mk1` returns 404; the bare slug also 404s). **Its licence cannot be
->    established**, because the licence was only ever declared on the Kaggle page and no copy of it
->    is stored in this repository. This matters: it is the largest single contributor to the
->    dataset — **1,326 of 2,376 train images (56%)**, 378 of 686 val, **187 of 344 test (54%)** —
->    and the source of 6 of the 9 classes. **Redistribution rights for those images are unknown.**
->    If the dataset was downloaded under a licence permitting redistribution, that evidence needs to
->    be located; otherwise the derived `dataset/` should not be redistributed.
-> 2. **Two of the three surviving sources are non-commercial.**
+> An earlier revision of this file recorded this source as *404, licence unrecoverable*. That was
+> wrong on the second point. The dataset was **not deleted — it was renamed by the same owner.**
+> `nizier193/classification-mk1` 404s, but `nizier193/strawberry-disease-classification` is **live
+> today**: 8.4 GB, ~9,000 images, 70+ classes, last updated 2025-02-11. Its own description reads
+> *"over 70 classes… compiled from 4 different sources, with links provided in the README.txt file"*,
+> which matches `union_dataset/` exactly — same 78 class directories, same `README.txt` with the
+> same four URLs. So the local `union_dataset/` **is** this dataset, and `classification-mk1` is the
+> author's earlier name for the same upload.
+>
+> Its licence is therefore no longer unknown-for-absence but **known-and-unlicensed**. Kaggle's
+> `licenseName` field reads `Unknown`, and the schema.org licence block in the archived page is
+> `{"@type":"CreativeWork","name":"Unknown","url":""}` — an empty URL, i.e. **the owner never
+> declared a licence**. Confirmed two independent ways: live via
+> `GET /api/v1/datasets/view/nizier193/strawberry-disease-classification`, and from the
+> 2026-02-10 Wayback snapshot of that page. Every other public dataset by the same owner is also
+> `licenseName: Unknown`; only their team object is `Apache 2.0`.
+>
+> **Consequence.** There is no licence to comply with and no attribution string to reproduce. Under
+> default copyright, absence of a licence means **all rights reserved**: redistribution, including
+> inside a derived dataset, is not permitted. This is the largest single contributor to the dataset
+> — **1,326 of 2,376 train images (56%)**, 378 of 686 val, **187 of 344 test (54%)** — and the source
+> of 6 of the 9 classes. **So `dataset/` should not be redistributed.** Two things are still worth
+> doing: the images can now be re-verified directly against the live source rather than trusted from
+> a partial CSV, and if the author or whoever holds the rights publishes a licence later, that
+> resolves this cleanly.
+>
+> Note this is a **second-order compilation**: the renamed dataset is itself built from four sources,
+> so its `Unknown` status sits on top of however those four were licensed. One of those four is
+> itself `classification-mk1`/`strawberry-disease-classification`, so the licence question does not
+> bottom out in a clean single answer.
+>
+> 2. **Two of the three other sources are non-commercial.**
 >    `doctorp` is **CC BY-NC-SA 4.0** and `tipburn` is **CC BY-NC 4.0**. Both prohibit commercial
 >    use, and CC BY-NC-SA additionally requires ShareAlike on derivatives. Any redistribution of the
 >    derived dataset therefore inherits a non-commercial and share-alike obligation. `plant-disease`
@@ -888,8 +911,9 @@ Licences below were read from the **Kaggle datasets API**
 >
 > A licence for the *composite* — this project's `dataset/` as a whole — is **not determinable from
 > these facts**, because it is an aggregation across sources with different, partly incompatible
-> terms, one of which is unresolvable. The person who assembled `union_dataset/` must state the terms
-> they downloaded under.
+> terms, one of which is affirmatively unlicensed. On current evidence the composite is
+> **non-redistributable**: `classification-mk1` carries no grant, and two of the remaining three
+> sources are non-commercial with a share-alike obligation.
 
 Per-class provenance of the 9 classes actually used (from the `dataset_link` column):
 
@@ -931,12 +955,13 @@ Per-class provenance of the 9 classes actually used (from the `dataset_link` col
 > The four upstream licences are now known (table above), but three things remain and **cannot be
 > determined from this repository**:
 >
-> 1. **`classification-mk1`'s licence is unrecoverable** because the dataset has been removed from
->    Kaggle, and it is the largest contributor (56% of train, 54% of test). Locate the terms under
->    which it was originally downloaded.
+> 1. **`classification-mk1` has no licence at all** — resolved, and the answer is negative. It lives
+>    on as `nizier193/strawberry-disease-classification` with `licenseName: Unknown` and an empty
+>    licence URL, i.e. the owner never declared terms. Default copyright therefore applies and
+>    redistribution is not permitted. If the author later publishes a licence, that resolves this.
 > 2. **The composite's licence.** This project aggregates sources under GPL 2, CC BY-NC-SA 4.0 and
->    CC BY-NC 4.0 plus one unknown. Whether the derived dataset may be redistributed, and under what
->    terms, is a decision the assembler must make and record.
+>    CC BY-NC 4.0 plus one unlicensed source. On current evidence the derived dataset is
+>    non-redistributable; documenting the decision is the assembler's to make and record.
 > 3. **Attribution.** The corpus has no title or credited author. The four Kaggle owners are the
 >    *upstream* authors and should be credited as such.
 
@@ -972,8 +997,9 @@ comparison in this document; they are flagged here instead.
 - Four upstream Kaggle datasets, as recorded in `union_dataset/README.txt` and the
   `dataset_link` column of `union_dataset/unified_strawberry_dataset.csv`. Licences were read from
   the Kaggle datasets API on 2 October 2026 and are tabulated in *Dataset citation*: GPL 2,
-  CC BY-NC-SA 4.0 and CC BY-NC 4.0 for the three that still resolve, **unknown for the fourth, which
-  has been removed from Kaggle**.
+  CC BY-NC-SA 4.0 and CC BY-NC 4.0 for the three that still resolve, and **no licence declared at
+  all for the fourth**, `classification-mk1`, which now lives on as
+  `nizier193/strawberry-disease-classification` with `licenseName: Unknown`.
 - **PlantVillage**, the source of `leaf_scorch` (and part of `healthy`). The canonical citation is
   D. P. Hughes and M. Salathé, *"An open access repository of images on plant health"*, arXiv:1511.08060
   (2015), <https://arxiv.org/abs/1511.08060>. Identified here from image geometry (256×256),
@@ -1039,14 +1065,15 @@ the UI describes the model as expert-validated, and no entry was flipped to `ver
   cap, per-class augmentation, hard-example mining, label decontamination) was developed while
   looking at test-set results, so some optimism remains and its size cannot be measured without a
   fresh test set. The measured cost of checkpoint selection alone was 0.0231 macro-F1.
-- **The composite dataset's licence is unresolved, and it is a redistribution blocker.** Three of the
-  four upstream Kaggle sources were checked via the Kaggle API: `plant-disease` is **GPL 2**,
-  `doctorp` is **CC BY-NC-SA 4.0**, `tipburn` is **CC BY-NC 4.0** — the latter two non-commercial.
-  The fourth, `classification-mk1`, **has been removed from Kaggle (404)**, so its licence cannot
-  be established at all, and it is the largest contributor (56% of train, 54% of test, and the sole
-  source of 6 of the 9 classes). Redistribution rights for the derived `dataset/` are therefore
-  **not determinable from this repository**. Provenance of `leaf_scorch` (17.5% of test) has since
-  been resolved as PlantVillage. See *Dataset citation*.
+- **The composite dataset's licence makes it non-redistributable.** Three of the four upstream
+  Kaggle sources were checked via the Kaggle API: `plant-disease` is **GPL 2**, `doctorp` is
+  **CC BY-NC-SA 4.0**, `tipburn` is **CC BY-NC 4.0** — the latter two non-commercial. The fourth,
+  `classification-mk1`, declared **no licence at all**: it now lives on as
+  `nizier193/strawberry-disease-classification` with `licenseName: Unknown` and an empty licence
+  URL, so the owner never granted terms and default copyright applies. It is the largest
+  contributor (56% of train, 54% of test, and the sole source of 6 of the 9 classes).
+  **`dataset/` therefore should not be redistributed.** Provenance of `leaf_scorch` (17.5% of test)
+  has since been resolved as PlantVillage. See *Dataset citation*.
 - **51 `leaf_spot` images flagged `is_strawberry_disease=False` by the source corpus remain in the
   dataset** (30 train / 12 val / **9 test**). Re-scored with the project's own binary filter they
   have median `p_strawberry` 0.3596 versus 0.9501 for unflagged controls, and inspection confirms
