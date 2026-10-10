@@ -1,0 +1,45 @@
+MIT License
+
+Copyright (c) 2026 IVP_project contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+--------------------------------------------------------------------------------
+
+SCOPE OF THIS LICENCE
+
+This licence covers the source code in this repository, which contains two
+independent projects:
+
+  * the MATLAB preprocessing / feature-extraction pipeline at the repository
+    root, and
+  * the strawberry disease detector under plant_ai/ (YOLOv5 classification,
+    FastAPI backend, React frontend).
+
+NOT covered by this licence, and NOT redistributable:
+
+  * Image datasets. The largest upstream source declares no licence at all and
+    two further sources are non-commercial with share-alike obligations, so no
+    composite licence can be granted. See "Data licensing" in
+    plant_ai/README.md.
+  * Trained model weights (plant_ai/backend/best.pt).
+
+Third-party components retain their own licences. ultralytics/yolov5 is
+AGPL-3.0; the vendored clone under plant_ai/yolov5/ is not committed to this
+repository but is fetched separately and retains that licence.
