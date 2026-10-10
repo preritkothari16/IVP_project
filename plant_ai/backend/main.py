@@ -14,6 +14,16 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+# Cap BLAS/OpenMP threads before torch is imported; see plant_ai/threadcaps.py. Without this the
+# server can fail to start with WinError 1455 on a busy machine, which is a memory-commit
+# failure rather than a torch problem.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+try:
+    import threadcaps  # noqa: F401
+except Exception:
+    for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
+        os.environ.setdefault(_v, "2")
+
 import numpy as np
 import torch
 import torch.nn.functional as F

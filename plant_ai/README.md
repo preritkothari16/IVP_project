@@ -6,6 +6,12 @@ top-3 alternatives, and treatment guidance.
 
 Everything below was run on Windows 11, Python 3.11.9, Node 24.14.1, NVIDIA RTX 3050 6 GB.
 
+> **Picking this up for the first time — human or agent: read
+> [`CONTRIBUTING.md`](CONTRIBUTING.md) first.** It records the current state, what changed
+> recently and why, the exact API contract, the Windows/PowerShell gotchas hit during this work,
+> and the rules for changing things. Most of the "obvious" improvements someone will want to
+> suggest here have already been investigated and ruled out — that file says which and why.
+
 ---
 
 ## Quick start

@@ -2,6 +2,9 @@
 preprocessed/
 base_matlab_verification/
 union_dataset/
+# 5 GB, regenerable from the binary strawberry/not-strawberry filter; train.txt/val.txt are
+# derived listings, not source data.
+binary_dataset/
 
 # Output files
 *.mat

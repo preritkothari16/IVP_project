@@ -12,9 +12,20 @@ import paths  # central path configuration; see paths.py
 import argparse
 import csv
 import json
+import os
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
+
+# Cap BLAS/OpenMP threads before torch is imported, or torch's CUDA DLLs fail to load with
+# WinError 1455 on this many-core, memory-constrained machine. Must precede `import torch`.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+try:
+    import threadcaps  # noqa: F401
+except Exception:
+    os.environ.setdefault("OMP_NUM_THREADS", "2")
+    os.environ.setdefault("OPENBLAS_NUM_THREADS", "2")
+    os.environ.setdefault("MKL_NUM_THREADS", "2")
 
 import cv2
 import matplotlib
