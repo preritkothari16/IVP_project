@@ -20,26 +20,3 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
---------------------------------------------------------------------------------
-
-SCOPE OF THIS LICENCE
-
-This licence covers the source code in this repository, which contains two
-independent projects:
-
-  * the MATLAB preprocessing / feature-extraction pipeline at the repository
-    root, and
-  * the strawberry disease detector under plant_ai/ (YOLOv5 classification,
-    FastAPI backend, React frontend).
-
-NOT covered by this licence, and NOT redistributable:
-
-  * Image datasets. The largest upstream source declares no licence at all and
-    two further sources are non-commercial with share-alike obligations, so no
-    composite licence can be granted. See "Data licensing" in
-    plant_ai/README.md.
-  * Trained model weights (plant_ai/backend/best.pt).
-
-Third-party components retain their own licences. ultralytics/yolov5 is
-AGPL-3.0; the vendored clone under plant_ai/yolov5/ is not committed to this
-repository but is fetched separately and retains that licence.
