@@ -7,17 +7,20 @@ function result = preprocessImage(img, targetSize)
         error('preprocessImage:InvalidImage', 'Input must be a numeric RGB image.');
     end
 
+    here = fileparts(mfilename('fullpath'));
+    addpath(fullfile(here, 'toolboxfree'));
+
     result.original = myToUint8(img);
     result.classLabel = '';
-    result.resized = imresize(result.original, targetSize);
-    result.hsv = rgb2hsv(result.resized);
+    result.resized = myImresize(result.original, targetSize);
+    result.hsv = myRgb2Hsv(result.resized);
     result.filtered = myGaussianFilter(result.resized, 1.5);
 
-    filteredHsv = rgb2hsv(result.filtered);
+    filteredHsv = myRgb2Hsv(result.filtered);
     filteredHsv(:,:,3) = myContrastStretch(filteredHsv(:,:,3));
-    result.enhanced = hsv2rgb(filteredHsv);
+    result.enhanced = myHsv2Rgb(filteredHsv);
 
-    enhancedHsv = rgb2hsv(result.enhanced);
+    enhancedHsv = myRgb2Hsv(result.enhanced);
     rawMask = enhancedHsv(:,:,1) >= 0.05 & enhancedHsv(:,:,1) <= 0.45 & ...
               enhancedHsv(:,:,2) >= 0.15 & enhancedHsv(:,:,3) >= 0.10;
     areaMask = myAreaOpen(rawMask, 500);

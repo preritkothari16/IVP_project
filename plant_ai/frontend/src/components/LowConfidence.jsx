@@ -35,6 +35,7 @@ export default function LowConfidence({ result, previewUrl, onRetry }) {
             <img
               src={previewUrl}
               alt="The photo you uploaded"
+              loading="lazy"
               className="mt-3 max-h-44 rounded-lg border border-clay-300/70 object-contain"
             />
           )}

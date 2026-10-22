@@ -1,9 +1,17 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, Suspense, lazy } from 'react'
 import { getClasses, getHealth, predict, ApiError } from './api'
-import DropZone from './components/DropZone'
 import { ConfidenceBar, SeverityBadge } from './components/Confidence'
-import DiseaseCard from './components/DiseaseCard'
-import LowConfidence from './components/LowConfidence'
+const DropZone = lazy(() => import('./components/DropZone'))
+const DiseaseCard = lazy(() => import('./components/DiseaseCard'))
+const LowConfidence = lazy(() => import('./components/LowConfidence'))
+
+function SuspenseFallback() {
+  return (
+    <div className="card p-5 text-center" aria-busy="true">
+      <p className="text-sm text-moss-700">Loading…</p>
+    </div>
+  )
+}
 
 const pretty = (n) => n.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 
@@ -256,7 +264,9 @@ export default function App() {
     <div className="mx-auto min-h-dvh max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
       <Header meta={meta} health={health} />
 
-      <DropZone onFile={onFile} busy={busy} />
+      <Suspense fallback={<SuspenseFallback />}>
+        <DropZone onFile={onFile} busy={busy} />
+      </Suspense>
 
       {file && !busy && (
         <div className="mt-4">
@@ -281,7 +291,9 @@ export default function App() {
 
       <div ref={resultRef} className="mt-5 space-y-5">
         {result && !busy && result.low_confidence && (
-          <LowConfidence result={result} previewUrl={previewOk ? preview : null} onRetry={reset} />
+          <Suspense fallback={<SuspenseFallback />}>
+            <LowConfidence result={result} previewUrl={previewOk ? preview : null} onRetry={reset} />
+          </Suspense>
         )}
 
         {result && !busy && !result.low_confidence && (
@@ -305,7 +317,11 @@ export default function App() {
             </section>
 
             <Alternatives top3={result.top3} topClass={result.top_class} />
-            {result.disease_info && <DiseaseCard info={result.disease_info} />}
+            {result.disease_info && (
+              <Suspense fallback={<SuspenseFallback />}>
+                <DiseaseCard info={result.disease_info} />
+              </Suspense>
+            )}
           </>
         )}
       </div>

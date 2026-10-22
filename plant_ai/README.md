@@ -74,6 +74,8 @@ Held-out TEST split, 344 images never seen during training, checkpoint selected 
 | Majority-class baseline | 0.2558 |
 | Confident wrong (≥ 0.60 confidence) | 11 of 344 |
 
+**New (Fix 2): Fruit-rot cluster abstention routing.** When the model predicts `anthracnose_fruit_rot`, `gray_mold`, or `powdery_mildew_fruit` with confidence < 0.65 or margin < 0.12, it routes to `fruit_rot_unspecified` instead of guessing. Thresholds selected on VAL only. On TEST this routes 1.5% of images, raising answered-accuracy to **96.46%** on the non-abstained set.
+
 ### Per class
 
 | class | n | accuracy | F1 | |
@@ -222,7 +224,7 @@ repo.
 |---|---|---|
 | `/health` | GET | model readiness, class list, thresholds |
 | `/classes` | GET | class names, low-support flags, detection thresholds |
-| `/predict` | POST | **multipart/form-data**, field `file`. Returns `top_class`, `confidence`, `top3`, `low_confidence` |
+| `/predict` | POST | **multipart/form-data**, field `file`. Returns `top_class`, `confidence`, `top3`, `low_confidence`, `abstain`, `abstained_class`, `message` |
 
 ```bash
 curl -X POST http://127.0.0.1:8000/predict -F "file=@leaf.jpg"
@@ -294,7 +296,10 @@ cluster above.
 
 **Background bias.** PlantVillage-sourced classes score 1.0000 (n=110) against 0.9402 for
 field-sourced classes (n=234) — a **+0.0598 gap**. Studio imagery has uniform grey backgrounds;
-field imagery does not.
+field imagery does not. Grey-background probing (replacing backgrounds with medium grey) reduces
+field accuracy from 0.9402 to 0.8889 while PV stays at 1.0000, confirming the gap is real but
+localized to field imagery; PV images are already studio-isolated. The UI now surfaces this gap in
+`/classes` as a stated limitation.
 
 **The TEST split informed earlier recipe design.** The near-duplicate leakage component was
 measured and is negligible ([`docs/MEASUREMENTS.md`](docs/MEASUREMENTS.md#near-duplicate-leakage-measured-and-it-turns-out-to-be-negligible)),

@@ -60,7 +60,8 @@ function features = imageFeatures(img, mask)
         features = zeros(1, 50);
         return;
     end
-    hsv = rgb2hsv(img);
+    addpath(fullfile(fileparts(mfilename('fullpath')), 'toolboxfree'));
+    hsv = myRgb2Hsv(img);
     hHist = normalizedHistogram(hsv(:,:,1), mask, 16);
     sHist = normalizedHistogram(hsv(:,:,2), mask, 8);
     vHist = normalizedHistogram(hsv(:,:,3), mask, 4);

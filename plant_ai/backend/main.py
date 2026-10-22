@@ -45,6 +45,21 @@ MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP"}
 LOW_CONFIDENCE_THRESHOLD = 0.6
 
+# Fruit-rot cluster: anthracnose_fruit_rot / gray_mold / powdery_mildew_fruit
+# These three classes share the same pathogen complex (Colletotrichum / Botrytis / Podosphaera)
+# and are not reliably separable from appearance alone.
+FRUIT_ROT_CLUSTER = {
+    "anthracnose_fruit_rot",
+    "gray_mold",
+    "powdery_mildew_fruit",
+}
+
+# Abstention thresholds selected on VAL only (never on TEST).
+# When the model predicts a fruit-rot class but confidence < 0.65 OR margin < 0.12,
+# the app abstains and routes to a `fruit_rot_unspecified` fallback.
+ABSTENTION_CONF_THRESHOLD = 0.65
+ABSTENTION_MARGIN_THRESHOLD = 0.12
+
 sys.path.append(str(YOLOV5_DIR))
 from models.common import DetectMultiBackend  # noqa: E402
 from utils.augmentations import classify_transforms  # noqa: E402
@@ -169,6 +184,8 @@ class PredictResponse(BaseModel):
     disease_info: Optional[DiseaseInfo]
     low_confidence: bool
     low_support: bool
+    abstain: bool = False
+    abstained_class: Optional[str] = None
     message: Optional[str] = None
 
 
@@ -282,6 +299,19 @@ async def predict(file: UploadFile = File(...)) -> PredictResponse:
     low_confidence = top_conf < LOW_CONFIDENCE_THRESHOLD
     low_support = top_class in LOW_SUPPORT
 
+    # Fix 2: Fruit-rot cluster abstention routing
+    # When the top prediction belongs to the fruit-rot cluster and fails the calibrated
+    # confidence/margin test, the app abstains and returns a fruit_rot_unspecified fallback.
+    top3_class_names = [n for n, _ in ranked[:3]]
+    in_fruit_rot_cluster = top_class in FRUIT_ROT_CLUSTER
+    margin = top_conf - ranked[1][1] if len(ranked) > 1 else 1.0
+    should_abstain_fruit_rot = in_fruit_rot_cluster and (
+        top_conf < ABSTENTION_CONF_THRESHOLD or margin < ABSTENTION_MARGIN_THRESHOLD
+    )
+
+    abstain = bool(should_abstain_fruit_rot)
+    abstained_class = "fruit_rot_unspecified" if abstain else None
+
     message = None
     if low_confidence:
         message = (
@@ -293,6 +323,18 @@ async def predict(file: UploadFile = File(...)) -> PredictResponse:
             (message + " ") if message else ""
         ) + f"Note: the model is less reliable for '{top_class}' - it has few training images."
 
+    # If abstaining for fruit-rot cluster, also mark low_confidence so the UI
+    # shows the "Not confident" card with the fallback information.
+    if abstain:
+        low_confidence = True
+        message = (
+            "Not sure about this one. The image appears to show a fruit rot, "
+            "but the model cannot reliably distinguish between anthracnose fruit rot, "
+            "grey mould, and powdery mildew on fruit from a single photo. "
+            "These three classes share overlapping symptoms and are best discussed "
+            "with an agronomist."
+        )
+
     return PredictResponse(
         top_class=top_class,
         confidence=round(top_conf, 4),
@@ -300,6 +342,8 @@ async def predict(file: UploadFile = File(...)) -> PredictResponse:
         disease_info=build_disease_info(top_class),
         low_confidence=low_confidence,
         low_support=low_support,
+        abstain=abstain,
+        abstained_class=abstained_class,
         message=message,
     )
 
