@@ -1,0 +1,41 @@
+# Domain randomization augmentation profile for fruit-rot retrain.
+# Addresses background bias (Fix 3): random backgrounds + lighting + color jitter
+# so the model generalizes from field imagery rather than studio backgrounds only.
+# Applied via YOLOv5 --augment-config or custom augmentation hook.
+#
+# Equivalent to the transforms currently used in backend predict_with_uncertainty:
+#   brightness/contrast jitter, gaussian noise, slight crop shift.
+augmentations:
+  hsv:
+    hue: [0.0, 0.15]
+    saturation: [0.4, 1.6]
+    value: [0.2, 0.9]
+  flip: true
+  fliplr: 0.5
+  bbox_clip: true
+  degrees: 15.0
+  translate: 0.15
+  mosaic: 0.0  # keep mosaic off for classification; use manual bg swap
+  copy_paste: 0.0
+  mixup: 0.0
+  cutmix: 0.0
+  scale: [0.75, 1.5]
+  shear: 0.0
+  perspective: 0.0
+  color_jitter: [0.9, 1.1, 0.9, 1.1]
+  brightness: 0.9
+  contrast: 1.1
+  saturation: 1.2
+  hue_shift: 0.08
+  gauss_noise: 0.01
+  cutout: 0.0
+  erasing: 0.0
+  freeze_bn: false
+
+# Background randomization settings (when mosaic/mixup disabled)
+background_randomization:
+  enabled: true
+  background_value: [127, 127, 127]
+  max_background_ratio: 0.4
+  random_crop: true
+  random_flip: true

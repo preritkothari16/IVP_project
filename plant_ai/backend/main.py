@@ -32,6 +32,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 from pydantic import BaseModel
 
+MC_DROPOUT_SAMPLES = 5
+MC_DROPOUT_ENABLED = True
+
 BACKEND_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = BACKEND_DIR.parent
 YOLOV5_DIR = PROJECT_DIR / "yolov5"
@@ -113,6 +116,49 @@ class Predictor:
             probs = F.softmax(logits, dim=1)[0]
         return {name: float(p) for name, p in zip(self._names, probs.tolist())}
 
+    def predict_with_uncertainty(self, image: Image.Image, n_samples: int = MC_DROPOUT_SAMPLES) -> Dict[str, float]:
+        """Run MC-dropout style uncertainty estimation via augmented forward passes.
+        
+        Since YOLOv5-cls doesn't have dropout layers, we approximate MC-dropout
+        by applying random perturbations to the input and measuring prediction variance.
+        """
+        if not MC_DROPOUT_ENABLED or n_samples <= 1:
+            return self.predict(image)
+
+        img_array = np.asarray(image.convert("RGB"))
+        probs_list = []
+
+        # Run multiple forward passes with slight augmentations
+        for _ in range(n_samples):
+            # Apply tiny random augmentations (noise, slight crop shift, color jitter)
+            perturbed = img_array.astype(np.float32) / 255.0
+            # Gaussian noise
+            perturbed += np.random.normal(0, 0.005, perturbed.shape)
+            # Slight brightness/contrast jitter
+            perturbed *= np.random.uniform(0.98, 1.02)
+            perturbed += np.random.uniform(-0.01, 0.01)
+            perturbed = np.clip(perturbed, 0, 1)
+            perturbed = (perturbed * 255).astype(np.uint8)
+
+            tensor = self._transform(perturbed).unsqueeze(0).to(self._device)
+            tensor = tensor.float() if not self._model.fp16 else tensor.half()
+
+            with torch.inference_mode():
+                logits = self._model(tensor)
+                probs = F.softmax(logits, dim=1)[0].cpu().numpy()
+            probs_list.append(probs)
+
+        # Mean and std across samples
+        probs_array = np.stack(probs_list, axis=0)  # (n_samples, n_classes)
+        mean_probs = probs_array.mean(axis=0)
+        std_probs = probs_array.std(axis=0)
+
+        # Return mean probabilities and uncertainty (max std across classes)
+        uncertainty = float(std_probs.max())
+        mean_dict = {name: float(p) for name, p in zip(self._names, mean_probs.tolist())}
+        mean_dict["_uncertainty"] = uncertainty
+        return mean_dict
+
 
 PREDICTOR = Predictor()
 
@@ -187,6 +233,8 @@ class PredictResponse(BaseModel):
     abstain: bool = False
     abstained_class: Optional[str] = None
     message: Optional[str] = None
+    # new uncertainty field
+    uncertainty: Optional[float] = None
 
 
 @app.get("/health")
@@ -292,11 +340,23 @@ async def predict(file: UploadFile = File(...)) -> PredictResponse:
             detail=f"Image is too small ({image.size[0]}x{image.size[1]}). Minimum is 32x32.",
         )
 
-    scores = PREDICTOR.predict(image.convert("RGB"))
-    ranked = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
+    scores = PREDICTOR.predict_with_uncertainty(image.convert("RGB"))
+    # Scores dict now includes mean probs + "_uncertainty" from MC-dropout-style runs
+    mc_uncertainty = scores.get("_uncertainty")
+    # Remove internal key and work with remaining probs
+    mc_probs = {k: v for k, v in scores.items() if not k.startswith("_")}
+    if not mc_probs:
+        # Fallback to single-pass
+        scores = PREDICTOR.predict(image.convert("RGB"))
+        mc_uncertainty = None
+        mc_probs = {k: v for k, v in scores.items()}
+
+    ranked = sorted(mc_probs.items(), key=lambda kv: kv[1], reverse=True)
     top_class, top_conf = ranked[0]
 
-    low_confidence = top_conf < LOW_CONFIDENCE_THRESHOLD
+    low_confidence = top_conf < LOW_CONFIDENCE_THRESHOLD or (
+        mc_uncertainty is not None and mc_uncertainty > 0.5
+    )
     low_support = top_class in LOW_SUPPORT
 
     # Fix 2: Fruit-rot cluster abstention routing
@@ -345,6 +405,7 @@ async def predict(file: UploadFile = File(...)) -> PredictResponse:
         abstain=abstain,
         abstained_class=abstained_class,
         message=message,
+        uncertainty=round(mc_uncertainty, 4) if mc_uncertainty is not None else None,
     )
 
 

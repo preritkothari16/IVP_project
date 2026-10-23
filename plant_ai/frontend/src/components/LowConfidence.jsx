@@ -1,4 +1,11 @@
-const TIPS = [
+const FRUIT_ROT_TIPS = [
+  'Fruit rot symptoms (anthracnose, gray mould, powdery mildew on fruit) overlap visually.',
+  'A single photo cannot reliably distinguish between them — this is a biological limitation.',
+  'Consult an agronomist or extension service for lab confirmation and treatment.',
+  'Try photos of the same fruit from multiple angles and at different disease stages.',
+]
+
+const GENERAL_TIPS = [
   'Fill the frame with a single leaf or a single fruit.',
   'Use natural light — avoid harsh flash and heavy shadow.',
   'Tap to focus and hold steady so the image is sharp.',
@@ -6,9 +13,16 @@ const TIPS = [
   'Avoid backgrounds full of other plants, which can throw the model off.',
 ]
 
-/** Shown when top-1 confidence is under the backend's 0.6 threshold. */
+function pretty(name) {
+  return name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+/** Shown when top-1 confidence is under the backend's 0.6 threshold, or when abstaining. */
 export default function LowConfidence({ result, previewUrl, onRetry }) {
+  const isFruitRotAbstain = result?.abstain && result?.abstained_class === 'fruit_rot_unspecified'
   const alts = (result?.top3 ?? []).filter((a) => a.class_name !== result.top_class)
+  const tips = isFruitRotAbstain ? FRUIT_ROT_TIPS : GENERAL_TIPS
+
   return (
     <section
       role="status"
@@ -21,15 +35,30 @@ export default function LowConfidence({ result, previewUrl, onRetry }) {
           </svg>
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="text-base font-bold text-clay-800">Not confident about this one</h2>
-          <p className="mt-1.5 text-sm leading-relaxed text-clay-900/90">
-            The best match was only{' '}
-            <strong className="tabular-nums">
-              {((result?.confidence ?? 0) * 100).toFixed(0)}%
-            </strong>{' '}
-            confident, which is below the 60% we need to stand behind a result. This usually means the
-            photo is unclear, too far away, or not a close-up of a strawberry leaf or fruit.
-          </p>
+          {isFruitRotAbstain ? (
+            <>
+              <h2 className="text-base font-bold text-clay-800">Fruit rot detected — type uncertain</h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-clay-900/90">
+                The model sees a fruit rot, but cannot reliably distinguish between
+                <strong>anthracnose fruit rot</strong>, <strong>grey mould</strong>, and
+                <strong>powdery mildew on fruit</strong>. These share overlapping symptoms and
+                the same pathogen complex — this is a limitation of visual diagnosis from
+                a single photo, not a model failure.
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-base font-bold text-clay-800">Not confident about this one</h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-clay-900/90">
+                The best match was only{' '}
+                <strong className="tabular-nums">
+                  {((result?.confidence ?? 0) * 100).toFixed(0)}%
+                </strong>{' '}
+                confident, which is below the 60% we need to stand behind a result. This usually means the
+                photo is unclear, too far away, or not a close-up of a strawberry leaf or fruit.
+              </p>
+            </>
+          )}
 
           {previewUrl && (
             <img
@@ -40,17 +69,35 @@ export default function LowConfidence({ result, previewUrl, onRetry }) {
             />
           )}
 
-          <h3 className="mt-4 text-xs font-semibold uppercase tracking-wide text-clay-800">
-            Try again with
-          </h3>
-          <ul className="mt-2 space-y-1.5 text-sm text-clay-900/90">
-            {TIPS.map((t) => (
-              <li key={t} className="flex gap-2">
-                <span className="mt-[0.45em] h-1.5 w-1.5 shrink-0 rounded-full bg-clay-500/70" />
-                {t}
-              </li>
-            ))}
-          </ul>
+          {isFruitRotAbstain ? (
+            <>
+              <h3 className="mt-4 text-xs font-semibold uppercase tracking-wide text-clay-800">
+                What to do
+              </h3>
+              <ul className="mt-2 space-y-1.5 text-sm text-clay-900/90">
+                {tips.map((t) => (
+                  <li key={t} className="flex gap-2">
+                    <span className="mt-[0.45em] h-1.5 w-1.5 shrink-0 rounded-full bg-clay-500/70" />
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <>
+              <h3 className="mt-4 text-xs font-semibold uppercase tracking-wide text-clay-800">
+                Try again with
+              </h3>
+              <ul className="mt-2 space-y-1.5 text-sm text-clay-900/90">
+                {tips.map((t) => (
+                  <li key={t} className="flex gap-2">
+                    <span className="mt-[0.45em] h-1.5 w-1.5 shrink-0 rounded-full bg-clay-500/70" />
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
 
           {alts.length > 0 && (
             <div className="mt-4 rounded-lg border border-clay-300/70 bg-white/70 px-3.5 py-3">
@@ -77,8 +124,4 @@ export default function LowConfidence({ result, previewUrl, onRetry }) {
       </div>
     </section>
   )
-}
-
-function pretty(name) {
-  return name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
